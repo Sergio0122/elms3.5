@@ -1,10 +1,10 @@
 {
   "name": "moodlemobile",
-  "version": "3.5.0",
-  "description": "The official app for Moodle.",
+  "version": "3.4.2",
+  "description": "Evotor LMS Mobile Official.",
   "author": {
-    "name": "Moodle Pty Ltd.",
-    "email": "mobile@moodle.com"
+    "name": "Evotor LMS Mobile",
+    "email": "lms@evotor.ru"
   },
   "config": {
     "ionic_webpack": "./config/webpack.config.js"
