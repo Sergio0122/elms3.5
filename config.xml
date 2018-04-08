@@ -13,7 +13,7 @@
     <allow-navigation href="data:*" />
     <allow-navigation href="*" />
     <allow-intent href="*" />
-    <preference name="phonegap-version" value="cli-8.0.0" />
+    <preference name="phonegap-version" value="cli-6.3.0" />
     <preference name="orientation" value="default" />
     <preference name="target-device" value="universal" />
     <preference name="fullscreen" value="false" />
@@ -118,5 +118,5 @@
     <plugin name="cordova-plugin-local-notifications-mm" />
     <plugin name="net.tunts.webintent" spec="https://github.com/Tunts/WebIntent.git" />
     <plugin name="ch.ti8m.documenthandler" spec="https://github.com/ti8m/DocumentHandler.git" />
-    <plugin name="cordova-sqlite-storage" spec="1.6.1"/>
+    <plugin name="cordova-sqlite-storage" spec="1.2.1"/>
 </widget>
