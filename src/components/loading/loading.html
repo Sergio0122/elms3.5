@@ -1,0 +1,8 @@
+<div [@coreShowHideAnimation] class="core-loading-container" *ngIf="!hideUntil">
+    <span class="core-loading-spinner">
+        <ion-spinner></ion-spinner>
+        <p class="core-loading-message" *ngIf="message">{{message}}</p>
+    </span>
+</div>
+<ng-content [@coreShowHideAnimation] class="core-loading-content" *ngIf="hideUntil">
+</ng-content>

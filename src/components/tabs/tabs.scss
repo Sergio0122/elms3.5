@@ -1,0 +1,90 @@
+core-tabs {
+    .core-tabs-bar {
+        left: 0;
+        position: relative;
+        z-index: $z-index-toolbar;
+        display: flex;
+        width: 100%;
+        background: $core-top-tabs-background;
+
+        > a {
+            @extend .tab-button;
+
+            background: $core-top-tabs-background;
+            color: $core-top-tabs-color !important;
+            font-size: 1.6rem;
+            border: 0;
+
+            &[aria-selected=true] {
+                color: $core-top-tabs-color-active !important;
+                border: 0 !important;
+                border-bottom: 2px solid $core-top-tabs-color-active !important;
+            }
+        }
+    }
+
+    .core-tabs-content-container {
+        height: 100%;
+    }
+
+    &.tabs-hidden {
+        .core-tabs-bar {
+            display: none !important;
+        }
+        .core-tabs-content-container {
+            padding-bottom: 0 !important;
+        }
+    }
+
+    core-tab {
+        display: none;
+        height: 100%;
+        position: relative;
+
+        &.selected {
+            display: block;
+        }
+
+        ion-header {
+            display: none;
+        }
+
+        .fixed-content, .scroll-content {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+    }
+}
+
+.scroll-content.no-scroll {
+    overflow: hidden !important;
+}
+
+.ios core-tabs {
+    .core-tabs-bar {
+        -webkit-box-pack: center;
+        -webkit-justify-content: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+        > a {
+            font-size: 1.6rem;
+        }
+    }
+}
+
+.md core-tabs {
+    .core-tabs-bar::after {
+        @extend .header-md::after;
+    }
+}
+
+.ios, .md, .wp {
+    .core-avoid-header ion-content core-tabs core-tab ion-content {
+        top: 0;
+        height: 100%;
+    }
+    ion-content core-tabs core-tab .core-avoid-header ion-content {
+        top: 0;
+        height: 100%;
+    }
+}
