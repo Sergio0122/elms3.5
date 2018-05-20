@@ -1,10 +1,10 @@
 {
   "name": "moodlemobile",
-  "version": "3.4.2",
-  "description": "Evotor LMS Mobile Official.",
+  "version": "3.5.0",
+  "description": "The official app for Moodle.",
   "author": {
-    "name": "Evotor LMS Mobile",
-    "email": "lms@evotor.ru"
+    "name": "Moodle Pty Ltd.",
+    "email": "mobile@moodle.com"
   },
   "config": {
     "ionic_webpack": "./config/webpack.config.js"
@@ -45,6 +45,7 @@
     "@ionic-native/core": "4.3.0",
     "@ionic-native/device": "^4.5.3",
     "@ionic-native/file": "^4.3.3",
+    "@ionic-native/file-opener": "^4.7.0",
     "@ionic-native/file-transfer": "^4.3.3",
     "@ionic-native/globalization": "^4.3.2",
     "@ionic-native/in-app-browser": "^4.3.3",
@@ -56,6 +57,7 @@
     "@ionic-native/splash-screen": "4.3.0",
     "@ionic-native/sqlite": "^4.3.2",
     "@ionic-native/status-bar": "4.3.0",
+    "@ionic-native/web-intent": "^4.7.0",
     "@ionic-native/zip": "^4.3.3",
     "@ngx-translate/core": "^8.0.0",
     "@ngx-translate/http-loader": "^2.0.0",
@@ -65,6 +67,7 @@
     "@types/cordova-plugin-network-information": "0.0.3",
     "@types/node": "^8.0.47",
     "@types/promise.prototype.finally": "^2.0.2",
+    "chart.js": "^2.7.2",
     "electron-builder-squirrel-windows": "^19.3.0",
     "electron-windows-notifications": "^1.1.13",
     "ionic-angular": "^3.9.2",
@@ -78,7 +81,7 @@
     "zone.js": "0.8.18"
   },
   "devDependencies": {
-    "@ionic/app-scripts": "^3.1.5",
+    "@ionic/app-scripts": "^3.1.8",
     "gulp": "^3.9.1",
     "gulp-clip-empty-files": "^0.1.2",
     "gulp-rename": "^1.2.2",
