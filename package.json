@@ -1,17 +1,17 @@
 {
   "name": "moodlemobile",
   "version": "3.5.0",
-  "description": "The official app for Moodle.",
+  "description": "Evotor LMS Mobile Official.",
   "author": {
-    "name": "Moodle Pty Ltd.",
-    "email": "mobile@moodle.com"
+    "name": "Evotor LMS Mobile",
+    "email": "lms@evotor.ru"
   },
   "config": {
     "ionic_webpack": "./config/webpack.config.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/moodlehq/moodlemobile2.git"
+    "url": "https://github.com/Sergio0122/elms3.5.git"
   },
   "license": "Apache-2.0",
   "licenses": [
