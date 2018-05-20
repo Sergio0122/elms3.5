@@ -117,7 +117,7 @@
     <plugin name="ionic-plugin-keyboard" spec="2.2.1" />
     <plugin name="cordova-plugin-zip" spec="3.1.0" />
     <plugin name="cordova-plugin-local-notifications-mm" />
-    <plugin name="cordova-plugin-websql" />
+    <plugin name="cordova-sqlite-storage" spec="https://github.com/litehelpers/cordova-sqlite-storage.git#storage-master"/>
     <plugin name="cordova-plugin-file-opener2" spec="~2.0.19" />
     <plugin name="com-darryncampbell-cordova-plugin-intent" spec="~1.0.2" />
 </widget>
