@@ -119,7 +119,7 @@
     <plugin name="cordova-plugin-local-notifications-mm" />
     <plugin name="cordova-sqlite-storage-dependencies" spec="https://github.com/litehelpers/Cordova-sqlite-storage.git#storage-master" />
     <plugin name="cordova-sqlite-ext" />
-    <plugin name="cordova-plugin-sqlite" />
+    <plugin name="cordova-plugin-sqlite" spec="Cordova-sqlite-evcore-extbuild-free"/>
     <plugin name="cordova-plugin-file-opener2" spec="~2.0.19" />
     <plugin name="com-darryncampbell-cordova-plugin-intent" spec="~1.0.2" />
 </widget>
