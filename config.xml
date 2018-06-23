@@ -13,15 +13,10 @@
     <allow-navigation href="data:*" />
     <allow-navigation href="*" />
     <allow-intent href="*" />
-<<<<<<< HEAD
     <allow-intent href="tel:*" />
     <allow-intent href="sms:*" />
     <allow-intent href="mailto:*" />
     <allow-intent href="geo:*" />
-=======
-    <preference name="phonegap-version" value="cli-6.5.0" />
-    <preference name='pgb-builder-version' value='1' />
->>>>>>> 03dec5fe115d0f25ec24504ff5a3740db473cb7c
     <preference name="orientation" value="default" />
     <preference name="target-device" value="universal" />
     <preference name="fullscreen" value="false" />
@@ -116,7 +111,7 @@
     <plugin name="cordova-plugin-splashscreen" spec="4.0.3" />
     <plugin name="cordova-clipboard" spec="1.1.0" />
     <plugin name="nl.kingsquare.cordova.background-audio" spec="1.0.1" />
-    <plugin name="phonegap-plugin-push" spec="2.2.0">
+    <plugin name="phonegap-plugin-push" spec="1.9.2">
         <variable name="SENDER_ID" value="694767596569" />
     </plugin>
     <plugin name="cordova-plugin-customurlscheme" spec="4.3.0">
@@ -125,10 +120,6 @@
     <plugin name="ionic-plugin-keyboard" spec="2.2.1" />
     <plugin name="cordova-plugin-zip" spec="3.1.0" />
     <plugin name="cordova-plugin-local-notifications-mm" />
-<<<<<<< HEAD
-=======
-    <plugin name="cordova-sqlite-storage" spec="2.0.4" />
->>>>>>> 03dec5fe115d0f25ec24504ff5a3740db473cb7c
     <plugin name="cordova-plugin-file-opener2" spec="~2.0.19" />
     <plugin name="com-darryncampbell-cordova-plugin-intent" spec="~1.0.2" />
     <plugin name="cordova-sqlite-evcore-extbuild-free" spec="~0.9.7" />
