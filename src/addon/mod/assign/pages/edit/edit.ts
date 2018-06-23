@@ -156,7 +156,7 @@ export class AddonModAssignEditPage implements OnInit, OnDestroy {
 
                 // Check if there's any offline data for this submission.
                 return this.assignOfflineProvider.getSubmission(this.assign.id, this.userId).then((data) => {
-                    this.hasOffline = data && data.pluginData && Object.keys(data.pluginData).length > 0;
+                    this.hasOffline = data && data.plugindata && Object.keys(data.plugindata).length > 0;
                 }).catch(() => {
                     // No offline data found.
                     this.hasOffline = false;
@@ -329,7 +329,7 @@ export class AddonModAssignEditPage implements OnInit, OnDestroy {
      * Component being destroyed.
      */
     ngOnDestroy(): void {
-        this.isDestroyed = false;
+        this.isDestroyed = true;
 
         // Unblock the assignment.
         if (this.assign) {

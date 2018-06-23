@@ -62,9 +62,12 @@ import { CoreInitDelegate } from '@providers/init';
 
 // List of Ionic Native providers.
 export const IONIC_NATIVE_PROVIDERS = [
+    Badge,
     Camera,
     Clipboard,
+    Device,
     File,
+    FileOpener,
     FileTransfer,
     Globalization,
     InAppBrowser,
@@ -72,9 +75,11 @@ export const IONIC_NATIVE_PROVIDERS = [
     LocalNotifications,
     MediaCapture,
     Network,
+    Push,
     SplashScreen,
     StatusBar,
     SQLite,
+    WebIntent,
     Zip
 ];
 
@@ -159,10 +164,11 @@ export const IONIC_NATIVE_PROVIDERS = [
         Keyboard,
         {
             provide: LocalNotifications,
-            deps: [CoreAppProvider, CoreUtilsProvider],
-            useFactory: (appProvider: CoreAppProvider, utils: CoreUtilsProvider): LocalNotifications => {
+            deps: [CoreAppProvider, CoreUtilsProvider, CoreTextUtilsProvider],
+            useFactory: (appProvider: CoreAppProvider, utils: CoreUtilsProvider, txtUtils: CoreTextUtilsProvider)
+                    : LocalNotifications => {
                 // Use platform instead of CoreAppProvider to prevent circular dependencies.
-                return appProvider.isMobile() ? new LocalNotifications() : new LocalNotificationsMock(appProvider, utils);
+                return appProvider.isMobile() ? new LocalNotifications() : new LocalNotificationsMock(appProvider, utils, txtUtils);
             }
         },
         {

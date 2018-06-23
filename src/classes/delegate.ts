@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
 import { CoreLoggerProvider } from '@providers/logger';
 import { CoreSitesProvider } from '@providers/sites';
 import { CoreEventsProvider } from '@providers/events';
@@ -35,7 +34,6 @@ export interface CoreDelegateHandler {
 /**
  * Superclass to help creating delegates
  */
-@Injectable()
 export class CoreDelegate {
 
     /**
@@ -162,6 +160,20 @@ export class CoreDelegate {
      */
     protected getHandler(handlerName: string, enabled: boolean = false): CoreDelegateHandler {
         return enabled ? this.enabledHandlers[handlerName] : this.handlers[handlerName];
+    }
+
+    /**
+     * Check if function exists on a handler.
+     *
+     * @param {string} handlerName         The handler name.
+     * @param {string} fnName              Name of the function to execute.
+     * @param {booealn} [onlyEnabled=true] If check only enabled handlers or all.
+     * @return {any} Function returned value or default value.
+     */
+    protected hasFunction(handlerName: string, fnName: string, onlyEnabled: boolean = true): any {
+        const handler = onlyEnabled ? this.enabledHandlers[handlerName] : this.handlers[handlerName];
+
+        return handler && handler[fnName];
     }
 
     /**

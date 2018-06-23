@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy } from '@angular/core';
-import { IonicPage, NavController } from 'ionic-angular';
+import { Component, OnDestroy, ViewChild } from '@angular/core';
+import { IonicPage, Searchbar, NavController } from 'ionic-angular';
+import { CoreEventsProvider } from '@providers/events';
 import { CoreSitesProvider } from '@providers/sites';
 import { CoreDomUtilsProvider } from '@providers/utils/dom';
+import { CoreUtilsProvider } from '@providers/utils/utils';
 import { CoreCoursesProvider } from '../../providers/courses';
 import { CoreCoursesMyOverviewProvider } from '../../providers/my-overview';
 import { CoreCourseHelperProvider } from '@core/course/providers/helper';
 import { CoreCourseOptionsDelegate } from '@core/course/providers/options-delegate';
 import { CoreSiteHomeProvider } from '@core/sitehome/providers/sitehome';
 import * as moment from 'moment';
+import { CoreTabsComponent } from '@components/tabs/tabs';
 
 /**
  * Page that displays My Overview.
@@ -32,6 +35,9 @@ import * as moment from 'moment';
     templateUrl: 'my-overview.html',
 })
 export class CoreCoursesMyOverviewPage implements OnDestroy {
+    @ViewChild(CoreTabsComponent) tabsComponent: CoreTabsComponent;
+    @ViewChild('searchbar') searchbar: Searchbar;
+
     firstSelectedTab: number;
     siteHomeEnabled: boolean;
     tabsReady = false;
@@ -64,20 +70,39 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
         past: {},
         future: {}
     };
+    downloadAllCoursesEnabled: boolean;
 
     protected prefetchIconsInitialized = false;
     protected isDestroyed;
+    protected updateSiteObserver;
+    protected courseIds = '';
 
     constructor(private navCtrl: NavController, private coursesProvider: CoreCoursesProvider,
             private domUtils: CoreDomUtilsProvider, private myOverviewProvider: CoreCoursesMyOverviewProvider,
             private courseHelper: CoreCourseHelperProvider, private sitesProvider: CoreSitesProvider,
-            private siteHomeProvider: CoreSiteHomeProvider, private courseOptionsDelegate: CoreCourseOptionsDelegate) { }
+            private siteHomeProvider: CoreSiteHomeProvider, private courseOptionsDelegate: CoreCourseOptionsDelegate,
+            private eventsProvider: CoreEventsProvider, private utils: CoreUtilsProvider) {
+    }
 
     /**
      * View loaded.
      */
     ionViewDidLoad(): void {
         this.searchEnabled = !this.coursesProvider.isSearchCoursesDisabledInSite();
+        this.downloadAllCoursesEnabled = !this.coursesProvider.isDownloadCoursesDisabledInSite();
+
+        // Refresh the enabled flags if site is updated.
+        this.updateSiteObserver = this.eventsProvider.on(CoreEventsProvider.SITE_UPDATED, () => {
+            const wasEnabled = this.downloadAllCoursesEnabled;
+
+            this.searchEnabled = !this.coursesProvider.isSearchCoursesDisabledInSite();
+            this.downloadAllCoursesEnabled = !this.coursesProvider.isDownloadCoursesDisabledInSite();
+
+            if (!wasEnabled && this.downloadAllCoursesEnabled && this.courses.loaded) {
+                // Download all courses is enabled now, initialize it.
+                this.initPrefetchCoursesIcons();
+            }
+        });
 
         // Decide which tab to load first.
         this.siteHomeProvider.isAvailable().then((enabled) => {
@@ -88,6 +113,20 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
             this.firstSelectedTab = displaySiteHome ? 0 : 2;
             this.tabsReady = true;
         });
+    }
+
+    /**
+     * User entered the page.
+     */
+    ionViewDidEnter(): void {
+        this.tabsComponent && this.tabsComponent.ionViewDidEnter();
+    }
+
+    /**
+     * User left the page.
+     */
+    ionViewDidLeave(): void {
+        this.tabsComponent && this.tabsComponent.ionViewDidLeave();
     }
 
     /**
@@ -179,17 +218,37 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
      */
     protected fetchUserCourses(): Promise<any> {
         return this.coursesProvider.getUserCourses().then((courses) => {
-            const courseIds = courses.map((course) => {
+            const promises = [],
+                courseIds = courses.map((course) => {
                 return course.id;
             });
 
             // Load course options of the course.
-            return this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
+            promises.push(this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
                 courses.forEach((course) => {
                     course.navOptions = options.navOptions[course.id];
                     course.admOptions = options.admOptions[course.id];
                 });
+            }));
 
+            this.courseIds = courseIds.join(',');
+
+            if (this.courseIds) {
+                // Load course image of all the courses.
+                promises.push(this.coursesProvider.getCoursesByField('ids', this.courseIds).then((coursesInfo) => {
+                    coursesInfo = this.utils.arrayToObject(coursesInfo, 'id');
+                    courses.forEach((course) => {
+                        if (coursesInfo[course.id] && coursesInfo[course.id].overviewfiles &&
+                                coursesInfo[course.id].overviewfiles[0]) {
+                            course.imageThumb = coursesInfo[course.id].overviewfiles[0].fileurl;
+                        } else {
+                            course.imageThumb = false;
+                        }
+                    });
+                }));
+            }
+
+            return Promise.all(promises).then(() => {
                 return courses.sort((a, b) => {
                     const compareA = a.fullname.toLowerCase(),
                         compareB = b.fullname.toLowerCase();
@@ -207,6 +266,11 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
         this.showFilter = !this.showFilter;
         this.courses.filter = '';
         this.filteredCourses = this.courses[this.courses.selected];
+        if (this.showFilter) {
+            setTimeout(() => {
+                this.searchbar.setFocus();
+            });
+        }
     }
 
     /**
@@ -241,6 +305,9 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
 
         promises.push(this.coursesProvider.invalidateUserCourses());
         promises.push(this.courseOptionsDelegate.clearAndInvalidateCoursesOptions());
+        if (this.courseIds) {
+            promises.push(this.coursesProvider.invalidateCoursesByField('ids', this.courseIds));
+        }
 
         return Promise.all(promises).finally(() => {
             switch (this.tabShown) {
@@ -378,7 +445,7 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
      * Initialize the prefetch icon for selected courses.
      */
     protected initPrefetchCoursesIcons(): void {
-        if (this.prefetchIconsInitialized) {
+        if (this.prefetchIconsInitialized || !this.downloadAllCoursesEnabled) {
             // Already initialized.
             return;
         }
@@ -410,5 +477,6 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
      */
     ngOnDestroy(): void {
         this.isDestroyed = true;
+        this.updateSiteObserver && this.updateSiteObserver.off();
     }
 }

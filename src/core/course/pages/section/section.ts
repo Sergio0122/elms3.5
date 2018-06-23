@@ -26,6 +26,7 @@ import { CoreCourseModulePrefetchDelegate } from '../../providers/module-prefetc
 import { CoreCourseOptionsDelegate, CoreCourseOptionsHandlerToDisplay } from '../../providers/options-delegate';
 import { CoreCourseFormatComponent } from '../../components/format/format';
 import { CoreCoursesProvider } from '@core/courses/providers/courses';
+import { CoreTabsComponent } from '@components/tabs/tabs';
 
 /**
  * Page that displays the list of courses the user is enrolled in.
@@ -38,6 +39,7 @@ import { CoreCoursesProvider } from '@core/courses/providers/courses';
 export class CoreCourseSectionPage implements OnDestroy {
     @ViewChild(Content) content: Content;
     @ViewChild(CoreCourseFormatComponent) formatComponent: CoreCourseFormatComponent;
+    @ViewChild(CoreTabsComponent) tabsComponent: CoreTabsComponent;
 
     title: string;
     course: any;
@@ -52,6 +54,7 @@ export class CoreCourseSectionPage implements OnDestroy {
         prefetchCourseIcon: 'spinner',
         title: 'core.course.downloadcourse'
     };
+    downloadCourseEnabled: boolean;
     moduleId: number;
     displayEnableDownload: boolean;
     displayRefresher: boolean;
@@ -75,6 +78,7 @@ export class CoreCourseSectionPage implements OnDestroy {
         // Get the title to display. We dont't have sections yet.
         this.title = courseFormatDelegate.getCourseTitle(this.course);
         this.displayEnableDownload = courseFormatDelegate.displayEnableDownload(this.course);
+        this.downloadCourseEnabled = !this.coursesProvider.isDownloadCourseDisabledInSite();
 
         this.completionObserver = eventsProvider.on(CoreEventsProvider.COMPLETION_MODULE_VIEWED, (data) => {
             if (data && data.courseId == this.course.id) {
@@ -82,12 +86,14 @@ export class CoreCourseSectionPage implements OnDestroy {
             }
         });
 
-        // Listen for changes in course status.
-        this.courseStatusObserver = eventsProvider.on(CoreEventsProvider.COURSE_STATUS_CHANGED, (data) => {
-            if (data.courseId == this.course.id) {
-                this.updateCourseStatus(data.status);
-            }
-        }, sitesProvider.getCurrentSiteId());
+        if (this.downloadCourseEnabled) {
+            // Listen for changes in course status.
+            this.courseStatusObserver = eventsProvider.on(CoreEventsProvider.COURSE_STATUS_CHANGED, (data) => {
+                if (data.courseId == this.course.id) {
+                    this.updateCourseStatus(data.status);
+                }
+            }, sitesProvider.getCurrentSiteId());
+        }
     }
 
     /**
@@ -102,6 +108,11 @@ export class CoreCourseSectionPage implements OnDestroy {
 
         this.loadData().finally(() => {
             this.dataLoaded = true;
+
+            if (!this.downloadCourseEnabled) {
+                // Cannot download the whole course, stop.
+                return;
+            }
 
             // Determine the course prefetch status.
             this.determineCoursePrefetchIcon().then(() => {
@@ -195,6 +206,19 @@ export class CoreCourseSectionPage implements OnDestroy {
                 });
             }));
 
+            // Get the overview files.
+            if (this.course.overviewfiles) {
+                this.course.imageThumb = this.course.overviewfiles[0] && this.course.overviewfiles[0].fileurl;
+            } else {
+                promises.push(this.coursesProvider.getCoursesByField('id', this.course.id).then((coursesInfo) => {
+                    if (coursesInfo[0] && coursesInfo[0].overviewfiles && coursesInfo[0].overviewfiles[0]) {
+                        this.course.imageThumb = coursesInfo[0].overviewfiles[0].fileurl;
+                    } else {
+                        this.course.imageThumb = false;
+                    }
+                }));
+            }
+
             // Load the course handlers.
             promises.push(this.courseOptionsDelegate.getHandlersToDisplay(this.injector, this.course, refresh, false)
                     .then((handlers) => {
@@ -256,6 +280,7 @@ export class CoreCourseSectionPage implements OnDestroy {
         promises.push(this.courseProvider.invalidateSections(this.course.id));
         promises.push(this.coursesProvider.invalidateUserCourses());
         promises.push(this.courseFormatDelegate.invalidateData(this.course, this.sections));
+        promises.push(this.coursesProvider.invalidateCoursesByField('id', this.course.id));
 
         if (this.sections) {
             promises.push(this.prefetchDelegate.invalidateCourseUpdates(this.course.id));
@@ -334,6 +359,13 @@ export class CoreCourseSectionPage implements OnDestroy {
     }
 
     /**
+     * Open the course summary
+     */
+    openCourseSummary(): void {
+        this.navCtrl.push('CoreCoursesCoursePreviewPage', {course: this.course, avoidOpenCourse: true});
+    }
+
+    /**
      * Page destroyed.
      */
     ngOnDestroy(): void {
@@ -348,6 +380,7 @@ export class CoreCourseSectionPage implements OnDestroy {
      */
     ionViewDidEnter(): void {
         this.formatComponent && this.formatComponent.ionViewDidEnter();
+        this.tabsComponent && this.tabsComponent.ionViewDidEnter();
     }
 
     /**
@@ -355,5 +388,6 @@ export class CoreCourseSectionPage implements OnDestroy {
      */
     ionViewDidLeave(): void {
         this.formatComponent && this.formatComponent.ionViewDidLeave();
+        this.tabsComponent && this.tabsComponent.ionViewDidLeave();
     }
 }

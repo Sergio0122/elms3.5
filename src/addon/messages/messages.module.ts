@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { NgModule } from '@angular/core';
+import { NgModule, NgZone } from '@angular/core';
 import { Network } from '@ionic-native/network';
 import { AddonMessagesProvider } from './providers/messages';
 import { AddonMessagesOfflineProvider } from './providers/messages-offline';
@@ -36,6 +36,14 @@ import { CoreSettingsDelegate } from '@core/settings/providers/delegate';
 import { AddonMessagesSettingsHandler } from './providers/settings-handler';
 import { AddonPushNotificationsDelegate } from '@addon/pushnotifications/providers/delegate';
 import { CoreUtilsProvider } from '@providers/utils/utils';
+import { CoreUpdateManagerProvider } from '@providers/update-manager';
+
+// List of providers (without handlers).
+export const ADDON_MESSAGES_PROVIDERS: any[] = [
+    AddonMessagesProvider,
+    AddonMessagesOfflineProvider,
+    AddonMessagesSyncProvider
+];
 
 @NgModule({
     declarations: [
@@ -61,9 +69,9 @@ export class AddonMessagesModule {
             contentLinksDelegate: CoreContentLinksDelegate, indexLinkHandler: AddonMessagesIndexLinkHandler,
             discussionLinkHandler: AddonMessagesDiscussionLinkHandler, sendMessageHandler: AddonMessagesSendMessageUserHandler,
             userDelegate: CoreUserDelegate, cronDelegate: CoreCronDelegate, syncHandler: AddonMessagesSyncCronHandler,
-            network: Network, messagesSync: AddonMessagesSyncProvider, appProvider: CoreAppProvider,
+            network: Network, zone: NgZone, messagesSync: AddonMessagesSyncProvider, appProvider: CoreAppProvider,
             localNotifications: CoreLocalNotificationsProvider, messagesProvider: AddonMessagesProvider,
-            sitesProvider: CoreSitesProvider, linkHelper: CoreContentLinksHelperProvider,
+            sitesProvider: CoreSitesProvider, linkHelper: CoreContentLinksHelperProvider, updateManager: CoreUpdateManagerProvider,
             settingsHandler: AddonMessagesSettingsHandler, settingsDelegate: CoreSettingsDelegate,
             pushNotificationsDelegate: AddonPushNotificationsDelegate, utils: CoreUtilsProvider,
             addContactHandler: AddonMessagesAddContactUserHandler, blockContactHandler: AddonMessagesBlockContactUserHandler) {
@@ -80,7 +88,10 @@ export class AddonMessagesModule {
 
         // Sync some discussions when device goes online.
         network.onConnect().subscribe(() => {
-            messagesSync.syncAllDiscussions(undefined, true);
+            // Execute the callback in the Angular zone, so change detection doesn't stop working.
+            zone.run(() => {
+                messagesSync.syncAllDiscussions(undefined, true);
+            });
         });
 
         const notificationClicked = (notification: any): void => {
@@ -111,5 +122,21 @@ export class AddonMessagesModule {
                 return true;
             }
         });
+
+        // Allow migrating the table from the old app to the new schema.
+        updateManager.registerSiteTableMigration({
+            name: 'mma_messages_offline_messages',
+            newName: AddonMessagesOfflineProvider.MESSAGES_TABLE,
+            fields: [
+                {
+                    name: 'textformat',
+                    delete: true
+                }
+            ]
+        });
+
+        // Migrate the component name.
+        updateManager.registerLocalNotifComponentMigration('mmaMessagesPushSimulation',
+                AddonMessagesProvider.PUSH_SIMULATION_COMPONENT);
     }
 }

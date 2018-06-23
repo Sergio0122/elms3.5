@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { Platform, App, NavController } from 'ionic-angular';
 import { Keyboard } from '@ionic-native/keyboard';
 import { Network } from '@ionic-native/network';
 
 import { CoreDbProvider } from './db';
 import { CoreLoggerProvider } from './logger';
+import { CoreEventsProvider } from './events';
 import { SQLiteDB } from '@classes/sqlitedb';
 
 /**
@@ -69,16 +70,25 @@ export class CoreAppProvider {
     protected isKeyboardShown = false;
 
     constructor(dbProvider: CoreDbProvider, private platform: Platform, private keyboard: Keyboard, private appCtrl: App,
-            private network: Network, logger: CoreLoggerProvider) {
+            private network: Network, logger: CoreLoggerProvider, events: CoreEventsProvider, zone: NgZone) {
         this.logger = logger.getInstance('CoreAppProvider');
         this.db = dbProvider.getDB(this.DBNAME);
 
         this.keyboard.onKeyboardShow().subscribe((data) => {
-            this.isKeyboardShown = true;
-
+            // Execute the callback in the Angular zone, so change detection doesn't stop working.
+            zone.run(() => {
+                document.body.classList.add('keyboard-is-open');
+                this.isKeyboardShown = true;
+                events.trigger(CoreEventsProvider.KEYBOARD_CHANGE, this.isKeyboardShown);
+            });
         });
         this.keyboard.onKeyboardHide().subscribe((data) => {
-            this.isKeyboardShown = false;
+            // Execute the callback in the Angular zone, so change detection doesn't stop working.
+            zone.run(() => {
+                document.body.classList.remove('keyboard-is-open');
+                this.isKeyboardShown = false;
+                events.trigger(CoreEventsProvider.KEYBOARD_CHANGE, this.isKeyboardShown);
+            });
         });
     }
 

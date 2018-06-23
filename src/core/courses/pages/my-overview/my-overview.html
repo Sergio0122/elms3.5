@@ -71,16 +71,16 @@
                                 <ion-option value="past">{{ 'core.courses.past' | translate }}</ion-option>
                             </ion-select>
                             <!-- Download all courses. -->
-                            <div *ngIf="courses[courses.selected] && courses[courses.selected].length > 1" class="core-button-spinner" float-end>
+                            <div *ngIf="downloadAllCoursesEnabled && courses[courses.selected] && courses[courses.selected].length > 1" class="core-button-spinner" float-end>
                                 <button *ngIf="prefetchCoursesData[courses.selected].icon && prefetchCoursesData[courses.selected].icon != 'spinner'" ion-button icon-only clear color="dark" (click)="prefetchCourses()">
-                                    <ion-icon [name]="prefetchCoursesData[courses.selected].icon"></ion-icon>
+                                    <core-icon [name]="prefetchCoursesData[courses.selected].icon"></core-icon>
                                 </button>
                                 <ion-spinner *ngIf="!prefetchCoursesData[courses.selected].icon || prefetchCoursesData[courses.selected].icon == 'spinner'"></ion-spinner>
                                 <span float-end *ngIf="prefetchCoursesData[courses.selected].badge">{{prefetchCoursesData[courses.selected].badge}}</span>
                             </div>
                         </div>
                         <!-- Filter courses. -->
-                        <ion-searchbar *ngIf="showFilter" [(ngModel)]="courses.filter" (ionInput)="filterChanged($event)" (ionCancel)="filterChanged()" [placeholder]="'core.courses.filtermycourses' | translate">
+                        <ion-searchbar #searchbar *ngIf="showFilter" [(ngModel)]="courses.filter" (ionInput)="filterChanged($event)" (ionCancel)="filterChanged()" [placeholder]="'core.courses.filtermycourses' | translate">
                         </ion-searchbar>
                         <!-- List of courses. -->
                         <div>

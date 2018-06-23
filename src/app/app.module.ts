@@ -14,17 +14,21 @@
 
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule } from '@angular/core';
-import { IonicApp, IonicModule, Platform, Content, ScrollEvent } from 'ionic-angular';
+import { NgModule, COMPILER_OPTIONS } from '@angular/core';
+import { IonicApp, IonicModule, Platform, Content, ScrollEvent, Config } from 'ionic-angular';
 import { assert } from 'ionic-angular/util/util';
 import { HttpModule } from '@angular/http';
 import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
+import { LocationStrategy } from '@angular/common';
+import { MockLocationStrategy } from '@angular/common/testing';
 
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { MoodleMobileApp } from './app.component';
 import { CoreInterceptor } from '@classes/interceptor';
+import { CorePageTransition } from '@classes/page-transition';
 import { CoreLoggerProvider } from '@providers/logger';
 import { CoreDbProvider } from '@providers/db';
 import { CoreAppProvider } from '@providers/app';
@@ -75,24 +79,30 @@ import { CoreCommentsModule } from '@core/comments/comments.module';
 import { AddonBadgesModule } from '@addon/badges/badges.module';
 import { AddonCalendarModule } from '@addon/calendar/calendar.module';
 import { AddonCompetencyModule } from '@addon/competency/competency.module';
+import { AddonCourseCompletionModule } from '@addon/coursecompletion/coursecompletion.module';
 import { AddonUserProfileFieldModule } from '@addon/userprofilefield/userprofilefield.module';
 import { AddonFilesModule } from '@addon/files/files.module';
 import { AddonModAssignModule } from '@addon/mod/assign/assign.module';
 import { AddonModBookModule } from '@addon/mod/book/book.module';
 import { AddonModChatModule } from '@addon/mod/chat/chat.module';
 import { AddonModChoiceModule } from '@addon/mod/choice/choice.module';
+import { AddonModDataModule } from '@addon/mod/data/data.module';
 import { AddonModLabelModule } from '@addon/mod/label/label.module';
 import { AddonModLtiModule } from '@addon/mod/lti/lti.module';
 import { AddonModResourceModule } from '@addon/mod/resource/resource.module';
 import { AddonModFeedbackModule } from '@addon/mod/feedback/feedback.module';
 import { AddonModFolderModule } from '@addon/mod/folder/folder.module';
 import { AddonModForumModule } from '@addon/mod/forum/forum.module';
+import { AddonModGlossaryModule } from '@addon/mod/glossary/glossary.module';
+import { AddonModLessonModule } from '@addon/mod/lesson/lesson.module';
 import { AddonModPageModule } from '@addon/mod/page/page.module';
 import { AddonModQuizModule } from '@addon/mod/quiz/quiz.module';
 import { AddonModScormModule } from '@addon/mod/scorm/scorm.module';
 import { AddonModUrlModule } from '@addon/mod/url/url.module';
 import { AddonModSurveyModule } from '@addon/mod/survey/survey.module';
+import { AddonModWorkshopModule } from '@addon/mod/workshop/workshop.module';
 import { AddonModImscpModule } from '@addon/mod/imscp/imscp.module';
+import { AddonModWikiModule } from '@addon/mod/wiki/wiki.module';
 import { AddonMessageOutputModule } from '@addon/messageoutput/messageoutput.module';
 import { AddonMessageOutputAirnotifierModule } from '@addon/messageoutput/airnotifier/airnotifier.module';
 import { AddonMessagesModule } from '@addon/messages/messages.module';
@@ -148,7 +158,7 @@ export const CORE_PROVIDERS: any[] = [
         HttpClientModule, // HttpClient is used to make JSON requests. It fails for HEAD requests because there is no content.
         HttpModule,
         IonicModule.forRoot(MoodleMobileApp, {
-            pageTransition: 'ios-transition'
+            pageTransition: 'core-page-transition'
         }),
         TranslateModule.forRoot({
             loader: {
@@ -177,24 +187,30 @@ export const CORE_PROVIDERS: any[] = [
         AddonBadgesModule,
         AddonCalendarModule,
         AddonCompetencyModule,
+        AddonCourseCompletionModule,
         AddonUserProfileFieldModule,
         AddonFilesModule,
         AddonModAssignModule,
         AddonModBookModule,
         AddonModChatModule,
         AddonModChoiceModule,
+        AddonModDataModule,
         AddonModLabelModule,
+        AddonModLessonModule,
         AddonModResourceModule,
         AddonModFeedbackModule,
         AddonModFolderModule,
         AddonModForumModule,
+        AddonModGlossaryModule,
         AddonModLtiModule,
         AddonModPageModule,
         AddonModQuizModule,
         AddonModScormModule,
         AddonModUrlModule,
         AddonModSurveyModule,
+        AddonModWorkshopModule,
         AddonModImscpModule,
+        AddonModWikiModule,
         AddonMessageOutputModule,
         AddonMessageOutputAirnotifierModule,
         AddonMessagesModule,
@@ -209,16 +225,45 @@ export const CORE_PROVIDERS: any[] = [
     entryComponents: [
         MoodleMobileApp
     ],
-    providers: CORE_PROVIDERS.concat([
+    providers: [
+        CoreLoggerProvider,
+        CoreDbProvider,
+        CoreAppProvider,
+        CoreConfigProvider,
+        CoreLangProvider,
+        CoreTextUtilsProvider,
+        CoreDomUtilsProvider,
+        CoreTimeUtilsProvider,
+        CoreUrlUtilsProvider,
+        CoreUtilsProvider,
+        CoreMimetypeUtilsProvider,
+        CoreInitDelegate,
+        CoreFileProvider,
+        CoreWSProvider,
+        CoreEventsProvider,
+        CoreSitesFactoryProvider,
+        CoreSitesProvider,
+        CoreLocalNotificationsProvider,
+        CoreGroupsProvider,
+        CoreCronDelegate,
+        CoreFileSessionProvider,
+        CoreFilepoolProvider,
+        CoreUpdateManagerProvider,
+        CorePluginFileDelegate,
+        CoreSyncProvider,
+        CoreFileHelperProvider,
         {
             provide: HTTP_INTERCEPTORS,
             useClass: CoreInterceptor,
             multi: true,
-        }
-    ])
+        },
+        {provide: COMPILER_OPTIONS, useValue: {}, multi: true},
+        {provide: JitCompilerFactory, useClass: JitCompilerFactory, deps: [COMPILER_OPTIONS]},
+        {provide: LocationStrategy, useClass: MockLocationStrategy},
+    ]
 })
 export class AppModule {
-    constructor(platform: Platform, initDelegate: CoreInitDelegate, updateManager: CoreUpdateManagerProvider,
+    constructor(platform: Platform, initDelegate: CoreInitDelegate, updateManager: CoreUpdateManagerProvider, config: Config,
             sitesProvider: CoreSitesProvider, fileProvider: CoreFileProvider) {
         // Register a handler for platform ready.
         initDelegate.registerProcess({
@@ -249,6 +294,9 @@ export class AppModule {
 
         // Execute the init processes.
         initDelegate.executeInitProcesses();
+
+        // Set transition animation.
+        config.setTransition('core-page-transition', CorePageTransition);
 
         // Decorate ion-content.
         this.decorateIonContent();

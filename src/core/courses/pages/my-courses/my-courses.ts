@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy } from '@angular/core';
-import { IonicPage, NavController } from 'ionic-angular';
+import { Component, OnDestroy, ViewChild } from '@angular/core';
+import { IonicPage, Searchbar, NavController } from 'ionic-angular';
 import { CoreEventsProvider } from '@providers/events';
 import { CoreSitesProvider } from '@providers/sites';
 import { CoreDomUtilsProvider } from '@providers/utils/dom';
+import { CoreUtilsProvider } from '@providers/utils/utils';
 import { CoreCoursesProvider } from '../../providers/courses';
 import { CoreCourseHelperProvider } from '@core/course/providers/helper';
 import { CoreCourseOptionsDelegate } from '@core/course/providers/options-delegate';
@@ -30,6 +31,8 @@ import { CoreCourseOptionsDelegate } from '@core/course/providers/options-delega
     templateUrl: 'my-courses.html',
 })
 export class CoreCoursesMyCoursesPage implements OnDestroy {
+    @ViewChild('searchbar') searchbar: Searchbar;
+
     courses: any[];
     filteredCourses: any[];
     searchEnabled: boolean;
@@ -37,22 +40,25 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
     showFilter = false;
     coursesLoaded = false;
     prefetchCoursesData: any = {};
+    downloadAllCoursesEnabled: boolean;
 
     protected prefetchIconInitialized = false;
     protected myCoursesObserver;
     protected siteUpdatedObserver;
     protected isDestroyed = false;
+    protected courseIds = '';
 
     constructor(private navCtrl: NavController, private coursesProvider: CoreCoursesProvider,
             private domUtils: CoreDomUtilsProvider, private eventsProvider: CoreEventsProvider,
             private sitesProvider: CoreSitesProvider, private courseHelper: CoreCourseHelperProvider,
-            private courseOptionsDelegate: CoreCourseOptionsDelegate) { }
+            private courseOptionsDelegate: CoreCourseOptionsDelegate, private utils: CoreUtilsProvider) { }
 
     /**
      * View loaded.
      */
     ionViewDidLoad(): void {
         this.searchEnabled = !this.coursesProvider.isSearchCoursesDisabledInSite();
+        this.downloadAllCoursesEnabled = !this.coursesProvider.isDownloadCoursesDisabledInSite();
 
         this.fetchCourses().finally(() => {
             this.coursesLoaded = true;
@@ -62,8 +68,17 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
             this.fetchCourses();
         }, this.sitesProvider.getCurrentSiteId());
 
+        // Refresh the enabled flags if site is updated.
         this.siteUpdatedObserver = this.eventsProvider.on(CoreEventsProvider.SITE_UPDATED, () => {
+            const wasEnabled = this.downloadAllCoursesEnabled;
+
             this.searchEnabled = !this.coursesProvider.isSearchCoursesDisabledInSite();
+            this.downloadAllCoursesEnabled = !this.coursesProvider.isDownloadCoursesDisabledInSite();
+
+            if (!wasEnabled && this.downloadAllCoursesEnabled && this.coursesLoaded) {
+                // Download all courses is enabled now, initialize it.
+                this.initPrefetchCoursesIcon();
+            }
         }, this.sitesProvider.getCurrentSiteId());
     }
 
@@ -74,16 +89,36 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
      */
     protected fetchCourses(): Promise<any> {
         return this.coursesProvider.getUserCourses().then((courses) => {
-
-            const courseIds = courses.map((course) => {
+            const promises = [],
+                courseIds = courses.map((course) => {
                 return course.id;
             });
 
-            return this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
+            this.courseIds = courseIds.join(',');
+
+            if (this.courseIds) {
+                // Load course image of all the courses.
+                promises.push(this.coursesProvider.getCoursesByField('ids', this.courseIds).then((coursesInfo) => {
+                    coursesInfo = this.utils.arrayToObject(coursesInfo, 'id');
+                    courses.forEach((course) => {
+                        if (coursesInfo[course.id] && coursesInfo[course.id].overviewfiles &&
+                                coursesInfo[course.id].overviewfiles[0]) {
+                            course.imageThumb = coursesInfo[course.id].overviewfiles[0].fileurl;
+                        } else {
+                            course.imageThumb = false;
+                        }
+                    });
+                }));
+            }
+
+            promises.push(this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
                 courses.forEach((course) => {
                     course.navOptions = options.navOptions[course.id];
                     course.admOptions = options.admOptions[course.id];
                 });
+            }));
+
+            return Promise.all(promises).then(() => {
                 this.courses = courses;
                 this.filteredCourses = this.courses;
                 this.filter = '';
@@ -105,6 +140,9 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
 
         promises.push(this.coursesProvider.invalidateUserCourses());
         promises.push(this.courseOptionsDelegate.clearAndInvalidateCoursesOptions());
+        if (this.courseIds) {
+            promises.push(this.coursesProvider.invalidateCoursesByField('ids', this.courseIds));
+        }
 
         Promise.all(promises).finally(() => {
 
@@ -122,6 +160,11 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
         this.filter = '';
         this.showFilter = !this.showFilter;
         this.filteredCourses = this.courses;
+        if (this.showFilter) {
+            setTimeout(() => {
+                this.searchbar.setFocus();
+            });
+        }
     }
 
     /**
@@ -176,7 +219,7 @@ export class CoreCoursesMyCoursesPage implements OnDestroy {
      * Initialize the prefetch icon for the list of courses.
      */
     protected initPrefetchCoursesIcon(): void {
-        if (this.prefetchIconInitialized) {
+        if (this.prefetchIconInitialized || !this.downloadAllCoursesEnabled) {
             // Already initialized.
             return;
         }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, NgZone } from '@angular/core';
 import { IonicPage, NavController, NavParams, Platform, ModalController, Modal } from 'ionic-angular';
 import { TranslateService } from '@ngx-translate/core';
 import { CoreAppProvider } from '@providers/app';
@@ -24,6 +24,7 @@ import { CoreCoursesProvider } from '../../providers/courses';
 import { CoreCourseOptionsDelegate } from '@core/course/providers/options-delegate';
 import { CoreCourseProvider } from '@core/course/providers/course';
 import { CoreCourseHelperProvider } from '@core/course/providers/helper';
+import { CoreCourseFormatDelegate } from '@core/course/providers/format-delegate';
 
 /**
  * Page that allows "previewing" a course and enrolling in it if enabled and not enrolled.
@@ -41,10 +42,12 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
     selfEnrolInstances: any[] = [];
     paypalEnabled: boolean;
     dataLoaded: boolean;
+    avoidOpenCourse = false;
     prefetchCourseData = {
         prefetchCourseIcon: 'spinner',
         title: 'core.course.downloadcourse'
     };
+    downloadCourseEnabled: boolean;
 
     protected guestWSAvailable: boolean;
     protected isGuestEnabled = false;
@@ -66,17 +69,23 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
             private coursesProvider: CoreCoursesProvider, private platform: Platform, private modalCtrl: ModalController,
             private translate: TranslateService, private eventsProvider: CoreEventsProvider,
             private courseOptionsDelegate: CoreCourseOptionsDelegate, private courseHelper: CoreCourseHelperProvider,
-            private courseProvider: CoreCourseProvider) {
+            private courseProvider: CoreCourseProvider, private courseFormatDelegate: CoreCourseFormatDelegate,
+            private zone: NgZone) {
+
         this.course = navParams.get('course');
+        this.avoidOpenCourse = navParams.get('avoidOpenCourse');
         this.isMobile = appProvider.isMobile();
         this.isDesktop = appProvider.isDesktop();
+        this.downloadCourseEnabled = !this.coursesProvider.isDownloadCourseDisabledInSite();
 
-        // Listen for status change in course.
-        this.courseStatusObserver = eventsProvider.on(CoreEventsProvider.COURSE_STATUS_CHANGED, (data) => {
-            if (data.courseId == this.course.id) {
-                this.updateCourseStatus(data.status);
-            }
-        }, sitesProvider.getCurrentSiteId());
+        if (this.downloadCourseEnabled) {
+            // Listen for status change in course.
+            this.courseStatusObserver = this.eventsProvider.on(CoreEventsProvider.COURSE_STATUS_CHANGED, (data) => {
+                if (data.courseId == this.course.id) {
+                    this.updateCourseStatus(data.status);
+                }
+            }, this.sitesProvider.getCurrentSiteId());
+        }
     }
 
     /**
@@ -91,6 +100,9 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
         this.enrolUrl = this.textUtils.concatenatePaths(currentSiteUrl, 'enrol/index.php?id=' + this.course.id);
         this.courseUrl = this.textUtils.concatenatePaths(currentSiteUrl, 'course/view.php?id=' + this.course.id);
         this.paypalReturnUrl = this.textUtils.concatenatePaths(currentSiteUrl, 'enrol/paypal/return.php');
+        if (this.course.overviewfiles && this.course.overviewfiles.length > 0) {
+            this.course.imageThumb = this.course.overviewfiles[0].fileurl;
+        }
 
         // Initialize the self enrol modal.
         this.selfEnrolModal = this.modalCtrl.create('CoreCoursesSelfEnrolPasswordPage');
@@ -101,6 +113,11 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
         });
 
         this.getCourse().finally(() => {
+            if (!this.downloadCourseEnabled) {
+                // Cannot download the whole course, stop.
+                return;
+            }
+
             // Determine course prefetch icon.
             this.courseHelper.getCourseStatusIconAndTitle(this.course.id).then((data) => {
                 this.prefetchCourseData.prefetchCourseIcon = data.icon;
@@ -211,11 +228,7 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
             }).catch(() => {
                 // The user is not an admin/manager. Check if we can provide guest access to the course.
                 return this.canAccessAsGuest().then((passwordRequired) => {
-                    if (!passwordRequired) {
-                        this.canAccessCourse = true;
-                    } else {
-                        this.canAccessCourse = false;
-                    }
+                    this.canAccessCourse = !passwordRequired;
                 }).catch(() => {
                     this.canAccessCourse = false;
                 });
@@ -229,12 +242,12 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
      * Open the course.
      */
     openCourse(): void {
-        if (!this.canAccessCourse) {
-            // Course cannot be opened.
+        if (!this.canAccessCourse || this.avoidOpenCourse) {
+            // Course cannot be opened or we are avoiding opening because we accessed from inside a course.
             return;
         }
 
-        this.navCtrl.push('CoreCourseSectionPage', { course: this.course });
+        this.courseFormatDelegate.openCourse(this.navCtrl, this.course);
     }
 
     /**
@@ -280,9 +293,15 @@ export class CoreCoursesCoursePreviewPage implements OnDestroy {
 
             if (this.isDesktop || this.isMobile) {
                 // Observe loaded pages in the InAppBrowser to check if the enrol process has ended.
-                inAppLoadSubscription = window.on('loadstart').subscribe(urlLoaded);
+                inAppLoadSubscription = window.on('loadstart').subscribe((event) => {
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(() => urlLoaded(event));
+                });
                 // Observe window closed.
-                inAppExitSubscription = window.on('exit').subscribe(inAppClosed);
+                inAppExitSubscription = window.on('exit').subscribe(() => {
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(inAppClosed);
+                });
             }
 
             if (this.isDesktop) {

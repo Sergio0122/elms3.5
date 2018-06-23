@@ -38,10 +38,9 @@ import { NavController, Nav } from 'ionic-angular';
  */
 @Component({
     selector: 'core-split-view',
-    templateUrl: 'split-view.html'
+    templateUrl: 'core-split-view.html'
 })
 export class CoreSplitViewComponent implements OnInit {
-    // @todo Mix both panels header buttons
 
     @ViewChild('detailNav') detailNav: Nav;
     @Input() when?: string | boolean = 'md';

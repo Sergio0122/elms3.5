@@ -27,6 +27,11 @@ import { CoreSitesProvider } from '@providers/sites';
 import { CoreUtilsProvider } from '@providers/utils/utils';
 import { AddonPushNotificationsDelegate } from '@addon/pushnotifications/providers/delegate';
 
+// List of providers (without handlers).
+export const ADDON_NOTIFICATIONS_PROVIDERS: any[] = [
+    AddonNotificationsProvider
+];
+
 @NgModule({
     declarations: [
     ],

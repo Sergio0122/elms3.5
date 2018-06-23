@@ -29,7 +29,7 @@ import { AddonModAssignSubmissionComponent } from '../submission/submission';
  */
 @Component({
     selector: 'addon-mod-assign-index',
-    templateUrl: 'index.html',
+    templateUrl: 'addon-mod-assign-index.html',
 })
 export class AddonModAssignIndexComponent extends CoreCourseModuleMainActivityComponent {
     @ViewChild(AddonModAssignSubmissionComponent) submissionComponent: AddonModAssignSubmissionComponent;
@@ -271,6 +271,24 @@ export class AddonModAssignIndexComponent extends CoreCourseModuleMainActivityCo
         return Promise.all(promises).finally(() => {
             this.submissionComponent && this.submissionComponent.invalidateAndRefresh();
         });
+    }
+
+    /**
+     * User entered the page that contains the component.
+     */
+    ionViewDidEnter(): void {
+        super.ionViewDidEnter();
+
+        this.submissionComponent && this.submissionComponent.ionViewDidEnter();
+    }
+
+    /**
+     * User left the page that contains the component.
+     */
+    ionViewDidLeave(): void {
+        super.ionViewDidLeave();
+
+        this.submissionComponent && this.submissionComponent.ionViewDidLeave();
     }
 
     /**

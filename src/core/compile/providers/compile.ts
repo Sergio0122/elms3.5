@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { Injectable, Injector, Component, NgModule, Compiler, ComponentFactory, ComponentRef, NgModuleRef } from '@angular/core';
+import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
 import {
     Platform, ActionSheetController, AlertController, LoadingController, ModalController, PopoverController, ToastController,
     IonicModule
@@ -55,9 +56,10 @@ import { CoreDelegate } from '@classes/delegate';
 import { CoreContentLinksHandlerBase } from '@core/contentlinks/classes/base-handler';
 import { CoreContentLinksModuleGradeHandler } from '@core/contentlinks/classes/module-grade-handler';
 import { CoreContentLinksModuleIndexHandler } from '@core/contentlinks/classes/module-index-handler';
-import { CoreCourseModulePrefetchHandlerBase } from '@core/course/classes/module-prefetch-handler';
+import { CoreCourseActivityPrefetchHandlerBase } from '@core/course/classes/activity-prefetch-handler';
+import { CoreCourseResourcePrefetchHandlerBase } from '@core/course/classes/resource-prefetch-handler';
 
-// Import all modules that define components, directives and pipes.
+// Import all core modules that define components, directives and pipes.
 import { CoreComponentsModule } from '@components/components.module';
 import { CoreDirectivesModule } from '@directives/directives.module';
 import { CorePipesModule } from '@pipes/pipes.module';
@@ -82,6 +84,41 @@ import { CoreSitePluginsQuizAccessRuleComponent } from '@core/siteplugins/compon
 import { CoreSitePluginsAssignFeedbackComponent } from '@core/siteplugins/components/assign-feedback/assign-feedback';
 import { CoreSitePluginsAssignSubmissionComponent } from '@core/siteplugins/components/assign-submission/assign-submission';
 
+// Import addon providers. Do not import database module because it causes circular dependencies.
+import { ADDON_BADGES_PROVIDERS } from '@addon/badges/badges.module';
+import { ADDON_CALENDAR_PROVIDERS } from '@addon/calendar/calendar.module';
+import { ADDON_COMPETENCY_PROVIDERS } from '@addon/competency/competency.module';
+import { ADDON_FILES_PROVIDERS } from '@addon/files/files.module';
+import { ADDON_MESSAGEOUTPUT_PROVIDERS } from '@addon/messageoutput/messageoutput.module';
+import { ADDON_MESSAGES_PROVIDERS } from '@addon/messages/messages.module';
+import { ADDON_MOD_ASSIGN_PROVIDERS } from '@addon/mod/assign/assign.module';
+import { ADDON_MOD_BOOK_PROVIDERS } from '@addon/mod/book/book.module';
+import { ADDON_MOD_CHAT_PROVIDERS } from '@addon/mod/chat/chat.module';
+import { ADDON_MOD_CHOICE_PROVIDERS } from '@addon/mod/choice/choice.module';
+import { ADDON_MOD_FEEDBACK_PROVIDERS } from '@addon/mod/feedback/feedback.module';
+import { ADDON_MOD_FOLDER_PROVIDERS } from '@addon/mod/folder/folder.module';
+import { ADDON_MOD_FORUM_PROVIDERS } from '@addon/mod/forum/forum.module';
+import { ADDON_MOD_GLOSSARY_PROVIDERS } from '@addon/mod/glossary/glossary.module';
+import { ADDON_MOD_IMSCP_PROVIDERS } from '@addon/mod/imscp/imscp.module';
+import { ADDON_MOD_LESSON_PROVIDERS } from '@addon/mod/lesson/lesson.module';
+import { ADDON_MOD_LTI_PROVIDERS } from '@addon/mod/lti/lti.module';
+import { ADDON_MOD_PAGE_PROVIDERS } from '@addon/mod/page/page.module';
+import { ADDON_MOD_QUIZ_PROVIDERS } from '@addon/mod/quiz/quiz.module';
+import { ADDON_MOD_RESOURCE_PROVIDERS } from '@addon/mod/resource/resource.module';
+import { ADDON_MOD_SCORM_PROVIDERS } from '@addon/mod/scorm/scorm.module';
+import { ADDON_MOD_SURVEY_PROVIDERS } from '@addon/mod/survey/survey.module';
+import { ADDON_MOD_URL_PROVIDERS } from '@addon/mod/url/url.module';
+import { ADDON_MOD_WIKI_PROVIDERS } from '@addon/mod/wiki/wiki.module';
+import { ADDON_MOD_WORKSHOP_PROVIDERS } from '@addon/mod/workshop/workshop.module';
+import { ADDON_NOTES_PROVIDERS } from '@addon/notes/notes.module';
+import { ADDON_NOTIFICATIONS_PROVIDERS } from '@addon/notifications/notifications.module';
+import { ADDON_PUSHNOTIFICATIONS_PROVIDERS } from '@addon/pushnotifications/pushnotifications.module';
+import { ADDON_REMOTETHEMES_PROVIDERS } from '@addon/remotethemes/remotethemes.module';
+
+// Import some addon modules that define components, directives and pipes. Only import the important ones.
+import { AddonModAssignComponentsModule } from '@addon/mod/assign/components/components.module';
+import { AddonModWorkshopComponentsModule } from '@addon/mod/workshop/components/components.module';
+
 /**
  * Service to provide functionalities regarding compiling dynamic HTML and Javascript.
  */
@@ -89,6 +126,7 @@ import { CoreSitePluginsAssignSubmissionComponent } from '@core/siteplugins/comp
 export class CoreCompileProvider {
 
     protected logger;
+    protected compiler: Compiler;
 
     // Other Ionic/Angular providers that don't depend on where they are injected.
     protected OTHER_PROVIDERS = [
@@ -100,11 +138,14 @@ export class CoreCompileProvider {
     protected IMPORTS = [
         IonicModule, TranslateModule.forChild(), CoreComponentsModule, CoreDirectivesModule, CorePipesModule,
         CoreCourseComponentsModule, CoreCoursesComponentsModule, CoreSiteHomeComponentsModule, CoreUserComponentsModule,
-        CoreCourseDirectivesModule, CoreSitePluginsDirectivesModule, CoreQuestionComponentsModule
+        CoreCourseDirectivesModule, CoreSitePluginsDirectivesModule, CoreQuestionComponentsModule, AddonModAssignComponentsModule,
+        AddonModWorkshopComponentsModule
     ];
 
-    constructor(protected injector: Injector, logger: CoreLoggerProvider, protected compiler: Compiler) {
+    constructor(protected injector: Injector, logger: CoreLoggerProvider, compilerFactory: JitCompilerFactory) {
         this.logger = logger.getInstance('CoreCompileProvider');
+
+        this.compiler = compilerFactory.createCompiler();
     }
 
     /**
@@ -112,17 +153,20 @@ export class CoreCompileProvider {
      *
      * @param {string} template The template of the component.
      * @param {any} componentClass The JS class of the component.
+     * @param {any[]} [extraImports] Extra imported modules if needed and not imported by this class.
      * @return {Promise<ComponentFactory<any>>} Promise resolved with the factory to instantiate the component.
      */
-    createAndCompileComponent(template: string, componentClass: any): Promise<ComponentFactory<any>> {
+    createAndCompileComponent(template: string, componentClass: any, extraImports: any[] = []): Promise<ComponentFactory<any>> {
         // Create the component using the template and the class.
         const component = Component({
             template: template
         })
         (componentClass);
 
+        const imports = this.IMPORTS.concat(extraImports);
+
         // Now create the module containing the component.
-        const module = NgModule({imports: this.IMPORTS, declarations: [component]})(class {});
+        const module = NgModule({imports: imports, declarations: [component]})(class {});
 
         // Compile the module and the component.
         return this.compiler.compileModuleAndAllComponentsAsync(module).then((factories) => {
@@ -166,13 +210,24 @@ export class CoreCompileProvider {
      * Inject all the core libraries in a certain object.
      *
      * @param {any} instance The instance where to inject the libraries.
+     * @param {any[]} [extraProviders] Extra imported providers if needed and not imported by this class.
      */
-    injectLibraries(instance: any): void {
+    injectLibraries(instance: any, extraProviders: any[] = []): void {
         const providers = (<any[]> CORE_PROVIDERS).concat(CORE_CONTENTLINKS_PROVIDERS).concat(CORE_COURSE_PROVIDERS)
                 .concat(CORE_COURSES_PROVIDERS).concat(CORE_FILEUPLOADER_PROVIDERS).concat(CORE_GRADES_PROVIDERS)
                 .concat(CORE_LOGIN_PROVIDERS).concat(CORE_MAINMENU_PROVIDERS).concat(CORE_SHAREDFILES_PROVIDERS)
                 .concat(CORE_SITEHOME_PROVIDERS).concat([CoreSitePluginsProvider]).concat(CORE_USER_PROVIDERS)
-                .concat(CORE_QUESTION_PROVIDERS).concat(IONIC_NATIVE_PROVIDERS).concat(this.OTHER_PROVIDERS);
+                .concat(CORE_QUESTION_PROVIDERS).concat(IONIC_NATIVE_PROVIDERS).concat(this.OTHER_PROVIDERS).concat(extraProviders)
+                .concat(ADDON_BADGES_PROVIDERS).concat(ADDON_CALENDAR_PROVIDERS).concat(ADDON_COMPETENCY_PROVIDERS)
+                .concat(ADDON_FILES_PROVIDERS).concat(ADDON_MESSAGEOUTPUT_PROVIDERS).concat(ADDON_MESSAGES_PROVIDERS)
+                .concat(ADDON_MOD_ASSIGN_PROVIDERS).concat(ADDON_MOD_BOOK_PROVIDERS).concat(ADDON_MOD_CHAT_PROVIDERS)
+                .concat(ADDON_MOD_CHOICE_PROVIDERS).concat(ADDON_MOD_FEEDBACK_PROVIDERS).concat(ADDON_MOD_FOLDER_PROVIDERS)
+                .concat(ADDON_MOD_FORUM_PROVIDERS).concat(ADDON_MOD_GLOSSARY_PROVIDERS).concat(ADDON_MOD_IMSCP_PROVIDERS)
+                .concat(ADDON_MOD_LESSON_PROVIDERS).concat(ADDON_MOD_LTI_PROVIDERS).concat(ADDON_MOD_PAGE_PROVIDERS)
+                .concat(ADDON_MOD_QUIZ_PROVIDERS).concat(ADDON_MOD_RESOURCE_PROVIDERS).concat(ADDON_MOD_SCORM_PROVIDERS)
+                .concat(ADDON_MOD_SURVEY_PROVIDERS).concat(ADDON_MOD_URL_PROVIDERS).concat(ADDON_MOD_WIKI_PROVIDERS)
+                .concat(ADDON_MOD_WORKSHOP_PROVIDERS).concat(ADDON_NOTES_PROVIDERS).concat(ADDON_NOTIFICATIONS_PROVIDERS)
+                .concat(ADDON_PUSHNOTIFICATIONS_PROVIDERS).concat(ADDON_REMOTETHEMES_PROVIDERS);
 
         // We cannot inject anything to this constructor. Use the Injector to inject all the providers into the instance.
         for (const i in providers) {
@@ -203,7 +258,8 @@ export class CoreCompileProvider {
         instance['CoreContentLinksHandlerBase'] = CoreContentLinksHandlerBase;
         instance['CoreContentLinksModuleGradeHandler'] = CoreContentLinksModuleGradeHandler;
         instance['CoreContentLinksModuleIndexHandler'] = CoreContentLinksModuleIndexHandler;
-        instance['CoreCourseModulePrefetchHandlerBase'] = CoreCourseModulePrefetchHandlerBase;
+        instance['CoreCourseActivityPrefetchHandlerBase'] = CoreCourseActivityPrefetchHandlerBase;
+        instance['CoreCourseResourcePrefetchHandlerBase'] = CoreCourseResourcePrefetchHandlerBase;
         instance['CoreCourseUnsupportedModuleComponent'] = CoreCourseUnsupportedModuleComponent;
         instance['CoreCourseFormatSingleActivityComponent'] = CoreCourseFormatSingleActivityComponent;
         instance['CoreSitePluginsModuleIndexComponent'] = CoreSitePluginsModuleIndexComponent;

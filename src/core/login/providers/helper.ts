@@ -160,11 +160,13 @@ export class CoreLoginHelperProvider {
             return false;
         }
 
-        const modal = this.domUtils.showModalLoading('core.login.authenticating', true);
-        let siteData: CoreLoginSSOData;
+        let siteData: CoreLoginSSOData,
+            modal;
 
         // Wait for app to be ready.
         this.initDelegate.ready().then(() => {
+            modal = this.domUtils.showModalLoading('core.login.authenticating', true);
+
             return this.validateBrowserSSOLogin(url);
         }).then((data) => {
             siteData = data;
@@ -178,8 +180,10 @@ export class CoreLoginHelperProvider {
                 this.goToSiteInitialPage();
             }
         }).catch((errorMessage) => {
-            if (typeof errorMessage == 'string' && errorMessage != '') {
+            if (errorMessage) {
+                // An error occurred, display the error and logout the user.
                 this.domUtils.showErrorModal(errorMessage);
+                this.sitesProvider.logout();
             }
         }).finally(() => {
             modal.dismiss();
@@ -380,9 +384,10 @@ export class CoreLoginHelperProvider {
      * If a fixed URL is configured, go to credentials instead.
      *
      * @param {boolean} [setRoot] True to set the new page as root, false to add it to the stack.
+     * @param {boolean} [showKeyboard] Whether to show keyboard in the new page. Only if no fixed URL set.
      * @return {Promise<any>} Promise resolved when done.
      */
-    goToAddSite(setRoot?: boolean): Promise<any> {
+    goToAddSite(setRoot?: boolean, showKeyboard?: boolean): Promise<any> {
         let pageName,
             params;
 
@@ -395,6 +400,9 @@ export class CoreLoginHelperProvider {
             params = { siteUrl: url };
         } else {
             pageName = 'CoreLoginSitePage';
+            params = {
+                showKeyboard: showKeyboard
+            };
         }
 
         if (setRoot) {
@@ -432,8 +440,8 @@ export class CoreLoginHelperProvider {
             const info = this.sitesProvider.getCurrentSite().getInfo();
             if (typeof info != 'undefined' && typeof info.username != 'undefined') {
                 return this.sitesProvider.updateSiteToken(info.siteurl, info.username, token, privateToken).then(() => {
-                    this.sitesProvider.updateSiteInfoByUrl(info.siteurl, info.username);
-                }).catch(() => {
+                    return this.sitesProvider.updateSiteInfoByUrl(info.siteurl, info.username);
+                }, () => {
                     // Error updating token, return proper error message.
                     return Promise.reject(this.translate.instant('core.login.errorupdatesite'));
                 });
@@ -685,9 +693,10 @@ export class CoreLoginHelperProvider {
      * @param {string} error Error message.
      */
     openChangePassword(siteUrl: string, error: string): void {
-        const alert = this.domUtils.showAlert(this.translate.instant('core.notice'), error, undefined, 3000);
-        alert.onDidDismiss(() => {
-            this.utils.openInApp(siteUrl + '/login/change_password.php');
+        this.domUtils.showAlert(this.translate.instant('core.notice'), error, undefined, 3000).then((alert) => {
+            alert.onDidDismiss(() => {
+                this.utils.openInApp(siteUrl + '/login/change_password.php');
+            });
         });
     }
 
@@ -950,12 +959,10 @@ export class CoreLoginHelperProvider {
      * @param {any} error Error object containing errorcode and error message.
      */
     treatUserTokenError(siteUrl: string, error: any): void {
-        if (typeof error == 'string') {
-            this.domUtils.showErrorModal(error);
-        } else if (error.errorcode == 'forcepasswordchangenotice') {
-            this.openChangePassword(siteUrl, error.error);
+        if (error.errorcode == 'forcepasswordchangenotice') {
+            this.openChangePassword(siteUrl, error.error || error.message || error.body || error.content);
         } else {
-            this.domUtils.showErrorModal(error.error);
+            this.domUtils.showErrorModal(error);
         }
     }
 

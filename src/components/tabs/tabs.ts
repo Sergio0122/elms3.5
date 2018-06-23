@@ -13,11 +13,12 @@
 // limitations under the License.
 
 import {
-    Component, Input, Output, EventEmitter, OnInit, OnChanges, AfterViewInit, ViewChild, ElementRef,
+    Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, AfterViewInit, ViewChild, ElementRef,
     SimpleChange
 } from '@angular/core';
 import { CoreTabComponent } from './tab';
-import { Content } from 'ionic-angular';
+import { Content, Slides } from 'ionic-angular';
+import { CoreDomUtilsProvider } from '@providers/utils/dom';
 
 /**
  * This component displays some tabs that usually share data between them.
@@ -39,18 +40,25 @@ import { Content } from 'ionic-angular';
  */
 @Component({
     selector: 'core-tabs',
-    templateUrl: 'tabs.html'
+    templateUrl: 'core-tabs.html'
 })
-export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
+export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
     @Input() selectedIndex = 0; // Index of the tab to select.
     @Input() hideUntil = true; // Determine when should the contents be shown.
     @Input() parentScrollable = false; // Determine if the scroll should be in the parent content or the tab itself.
     @Output() ionChange: EventEmitter<CoreTabComponent> = new EventEmitter<CoreTabComponent>(); // Emitted when the tab changes.
     @ViewChild('originalTabs') originalTabsRef: ElementRef;
     @ViewChild('topTabs') topTabs: ElementRef;
+    @ViewChild(Slides) slides: Slides;
 
     tabs: CoreTabComponent[] = []; // List of tabs.
     selected: number; // Selected tab number.
+    showPrevButton: boolean;
+    showNextButton: boolean;
+    maxSlides = 3;
+    slidesShown = this.maxSlides;
+    numTabsShown = 0;
+
     protected originalTabsContainer: HTMLElement; // The container of the original tabs. It will include each tab's content.
     protected initialized = false;
     protected afterViewInitTriggered = false;
@@ -59,8 +67,11 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
     protected tabBarHeight;
     protected tabBarElement: HTMLElement; // Host element.
     protected tabsShown = true;
+    protected resizeFunction;
+    protected isDestroyed = false;
+    protected isCurrentView = true;
 
-    constructor(element: ElementRef, protected content: Content) {
+    constructor(element: ElementRef, protected content: Content, protected domUtils: CoreDomUtilsProvider) {
         this.tabBarElement = element.nativeElement;
     }
 
@@ -76,11 +87,20 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
      * View has been initialized.
      */
     ngAfterViewInit(): void {
+        if (this.isDestroyed) {
+            return;
+        }
+
         this.afterViewInitTriggered = true;
+
         if (!this.initialized && this.hideUntil) {
             // Tabs should be shown, initialize them.
             this.initializeTabs();
         }
+
+        this.resizeFunction = this.calculateSlides.bind(this);
+
+        window.addEventListener('resize', this.resizeFunction);
     }
 
     /**
@@ -98,6 +118,24 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
     }
 
     /**
+     * User entered the page that contains the component.
+     */
+    ionViewDidEnter(): void {
+        this.isCurrentView = true;
+
+        if (this.initialized) {
+            this.calculateSlides();
+        }
+    }
+
+    /**
+     * User left the page that contains the component.
+     */
+    ionViewDidLeave(): void {
+        this.isCurrentView = false;
+    }
+
+    /**
      * Add a new tab if it isn't already in the list of tabs.
      *
      * @param {CoreTabComponent} tab The tab to add.
@@ -107,6 +145,7 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
         if (this.getIndex(tab) == -1) {
             this.tabs.push(tab);
             this.sortTabs();
+            this.calculateSlides();
 
             if (this.initialized && this.tabs.length > 1 && this.tabBarHeight == 0) {
                 // Calculate the tabBarHeight again now that there is more than 1 tab and the bar will be seen.
@@ -116,6 +155,21 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
                 }, 50);
             }
         }
+    }
+
+    /**
+     * Calculate slides.
+     */
+    calculateSlides(): void {
+        if (!this.isCurrentView || !this.tabsShown) {
+            // Don't calculate if component isn't in current view, the calculations are wrong.
+            return;
+        }
+
+        setTimeout(() => {
+            this.calculateMaxSlides();
+            this.updateSlides();
+        });
     }
 
     /**
@@ -190,7 +244,77 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
             }
         }
 
+        // Check which arrows should be shown.
+        this.calculateSlides();
+
         this.initialized = true;
+    }
+
+    /**
+     * Method executed when the slides are changed.
+     */
+    slideChanged(): void {
+        const currentIndex = this.slides.getActiveIndex();
+        if (this.slidesShown >= this.numTabsShown) {
+            this.showPrevButton = false;
+            this.showNextButton = false;
+        } else if (typeof currentIndex !== 'undefined') {
+            this.showPrevButton = currentIndex > 0;
+            this.showNextButton = currentIndex < this.numTabsShown - this.slidesShown;
+        } else {
+            this.showPrevButton = false;
+            this.showNextButton = this.numTabsShown > this.slidesShown;
+        }
+    }
+
+    /**
+     * Update slides.
+     */
+    protected updateSlides(): void {
+        this.numTabsShown = this.tabs.reduce((prev: number, current: any) => {
+            return current.show ? prev + 1 : prev;
+        }, 0);
+
+        this.slidesShown = Math.min(this.maxSlides, this.numTabsShown);
+
+        this.slideChanged();
+
+        setTimeout(() => {
+            this.slides.update();
+            this.slides.resize();
+        });
+    }
+
+    protected calculateMaxSlides(): void {
+        if (this.slides) {
+            const width = this.domUtils.getElementWidth(this.slides.getNativeElement()) || this.slides.renderedWidth;
+
+            if (width) {
+                this.maxSlides = Math.floor(width / 120);
+
+                return;
+            }
+        }
+
+        this.maxSlides = 3;
+    }
+
+    /**
+     * Method that shows the next slide.
+     */
+    slideNext(): void {
+        if (this.showNextButton) {
+            this.slides.slideNext();
+        }
+    }
+
+    /**
+     * Method that shows the previous slide.
+     */
+    slidePrev(): void {
+        if (this.showPrevButton) {
+            this.slides.slidePrev();
+        }
     }
 
     /**
@@ -210,6 +334,7 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
         } else if (!this.tabsShown && e.target.scrollTop < this.tabBarHeight) {
             this.tabBarElement.classList.remove('tabs-hidden');
             this.tabsShown = true;
+            this.calculateSlides();
         }
     }
 
@@ -221,6 +346,8 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
     removeTab(tab: CoreTabComponent): void {
         const index = this.getIndex(tab);
         this.tabs.splice(index, 1);
+
+        this.calculateSlides();
     }
 
     /**
@@ -252,6 +379,10 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
             currentTab.unselectTab();
         }
 
+        if (this.selected) {
+            this.slides.slideTo(index);
+        }
+
         this.selected = index;
         newTab.selectTab();
         this.ionChange.emit(newTab);
@@ -272,6 +403,24 @@ export class CoreTabsComponent implements OnInit, AfterViewInit, OnChanges {
             });
 
             this.tabs = newTabs;
+        }
+    }
+
+    /**
+     * Function to call when the visibility of a tab has changed.
+     */
+    tabVisibilityChanged(): void {
+        this.calculateSlides();
+    }
+
+    /**
+     * Component destroyed.
+     */
+    ngOnDestroy(): void {
+        this.isDestroyed = true;
+
+        if (this.resizeFunction) {
+            window.removeEventListener('resize', this.resizeFunction);
         }
     }
 }

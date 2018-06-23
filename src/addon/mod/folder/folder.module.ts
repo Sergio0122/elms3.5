@@ -25,6 +25,12 @@ import { CoreContentLinksDelegate } from '@core/contentlinks/providers/delegate'
 import { CoreCourseModulePrefetchDelegate } from '@core/course/providers/module-prefetch-delegate';
 import { CorePluginFileDelegate } from '@providers/plugin-file-delegate';
 
+// List of providers (without handlers).
+export const ADDON_MOD_FOLDER_PROVIDERS: any[] = [
+    AddonModFolderProvider,
+    AddonModFolderHelperProvider
+];
+
 @NgModule({
     declarations: [
     ],

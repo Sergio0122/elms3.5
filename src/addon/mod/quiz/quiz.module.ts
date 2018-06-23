@@ -29,6 +29,7 @@ import { AddonModQuizIndexLinkHandler } from './providers/index-link-handler';
 import { AddonModQuizGradeLinkHandler } from './providers/grade-link-handler';
 import { AddonModQuizReviewLinkHandler } from './providers/review-link-handler';
 import { AddonModQuizComponentsModule } from './components/components.module';
+import { CoreUpdateManagerProvider } from '@providers/update-manager';
 
 // Access rules.
 import { AddonModQuizAccessDelayBetweenAttemptsModule } from './accessrules/delaybetweenattempts/delaybetweenattempts.module';
@@ -40,6 +41,15 @@ import { AddonModQuizAccessPasswordModule } from './accessrules/password/passwor
 import { AddonModQuizAccessSafeBrowserModule } from './accessrules/safebrowser/safebrowser.module';
 import { AddonModQuizAccessSecureWindowModule } from './accessrules/securewindow/securewindow.module';
 import { AddonModQuizAccessTimeLimitModule } from './accessrules/timelimit/timelimit.module';
+
+// List of providers (without handlers).
+export const ADDON_MOD_QUIZ_PROVIDERS: any[] = [
+    AddonModQuizAccessRuleDelegate,
+    AddonModQuizProvider,
+    AddonModQuizOfflineProvider,
+    AddonModQuizHelperProvider,
+    AddonModQuizSyncProvider
+];
 
 @NgModule({
     declarations: [
@@ -75,7 +85,7 @@ export class AddonModQuizModule {
             prefetchDelegate: CoreCourseModulePrefetchDelegate, prefetchHandler: AddonModQuizPrefetchHandler,
             cronDelegate: CoreCronDelegate, syncHandler: AddonModQuizSyncCronHandler, linksDelegate: CoreContentLinksDelegate,
             indexHandler: AddonModQuizIndexLinkHandler, gradeHandler: AddonModQuizGradeLinkHandler,
-            reviewHandler: AddonModQuizReviewLinkHandler) {
+            reviewHandler: AddonModQuizReviewLinkHandler, updateManager: CoreUpdateManagerProvider) {
 
         moduleDelegate.registerHandler(moduleHandler);
         prefetchDelegate.registerHandler(prefetchHandler);
@@ -83,5 +93,21 @@ export class AddonModQuizModule {
         linksDelegate.registerHandler(indexHandler);
         linksDelegate.registerHandler(gradeHandler);
         linksDelegate.registerHandler(reviewHandler);
+
+        // Allow migrating the tables from the old app to the new schema.
+        updateManager.registerSiteTableMigration({
+            name: 'mod_quiz_attempts',
+            newName: AddonModQuizOfflineProvider.ATTEMPTS_TABLE,
+            fields: [
+                {
+                    name: 'quizAndUser',
+                    delete: true
+                },
+                {
+                    name: 'finished',
+                    type: 'boolean'
+                }
+            ]
+        });
     }
 }

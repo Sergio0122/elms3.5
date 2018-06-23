@@ -13,12 +13,13 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { Platform } from 'ionic-angular';
+import { Platform, Alert, AlertController } from 'ionic-angular';
 import { LocalNotifications, ILocalNotification } from '@ionic-native/local-notifications';
+import { TranslateService } from '@ngx-translate/core';
 import { CoreAppProvider } from './app';
 import { CoreConfigProvider } from './config';
+import { CoreEventsProvider } from './events';
 import { CoreLoggerProvider } from './logger';
-import { CoreDomUtilsProvider } from './utils/dom';
 import { CoreTextUtilsProvider } from './utils/text';
 import { CoreUtilsProvider } from './utils/utils';
 import { SQLiteDB } from '@classes/sqlitedb';
@@ -47,9 +48,6 @@ export interface CoreILocalNotification extends ILocalNotification {
  *
  * See https://angular.io/guide/dependency-injection for more info on providers
  * and Angular DI.
- *
- * @todo We might have to translate the old component name to the new one.
- *       Otherwise the unique ID of local notifications could change.
 */
 @Injectable()
 export class CoreLocalNotificationsProvider {
@@ -110,13 +108,41 @@ export class CoreLocalNotificationsProvider {
     protected codes: { [s: string]: number } = {};
     protected codeRequestsQueue = {};
     protected observables = {};
+    protected alertNotification: Alert;
+    protected currentNotification = {
+        title: '',
+        texts: [],
+        ids: [],
+        timeouts: []
+    };
 
     constructor(logger: CoreLoggerProvider, private localNotifications: LocalNotifications, private platform: Platform,
             private appProvider: CoreAppProvider, private utils: CoreUtilsProvider, private configProvider: CoreConfigProvider,
-            private domUtils: CoreDomUtilsProvider, private textUtils: CoreTextUtilsProvider) {
+            private textUtils: CoreTextUtilsProvider, private translate: TranslateService, private alertCtrl: AlertController,
+            eventsProvider: CoreEventsProvider) {
+
         this.logger = logger.getInstance('CoreLocalNotificationsProvider');
         this.appDB = appProvider.getDB();
         this.appDB.createTablesFromSchema(this.tablesSchema);
+
+        localNotifications.on('trigger', (notification, state) => {
+            this.trigger(notification);
+        });
+
+        localNotifications.on('click', (notification, state) => {
+            if (notification && notification.data) {
+                this.logger.debug('Notification clicked: ', notification.data);
+
+                const data = textUtils.parseJSON(notification.data);
+                this.notifyClick(data);
+            }
+        });
+
+        eventsProvider.on(CoreEventsProvider.SITE_DELETED, (site) => {
+            if (site) {
+                this.cancelSiteNotifications(site.id);
+            }
+        });
     }
 
     /**
@@ -473,13 +499,89 @@ export class CoreLocalNotificationsProvider {
      * @param {CoreILocalNotification} notification Notification.
      */
     showNotificationPopover(notification: CoreILocalNotification): void {
-        // @todo Improve it. For now, show Toast.
+
         if (!notification || !notification.title || !notification.text) {
             // Invalid data.
             return;
         }
 
-        this.domUtils.showToast(notification.text, false, 4000);
+        const clearAlert = (all: boolean = false): void => {
+            // Only erase first notification.
+            if (!all && this.alertNotification && this.currentNotification.ids.length > 1) {
+                this.currentNotification.texts.shift();
+                this.currentNotification.ids.shift();
+                clearTimeout(this.currentNotification.timeouts.shift());
+
+                const text = '<p>' + this.currentNotification.texts.join('</p><p>') + '</p>';
+                this.alertNotification.setMessage(text);
+            } else {
+                // Close the alert and reset the current object.
+                if (this.alertNotification && !all) {
+                    this.alertNotification.dismiss();
+                }
+
+                this.alertNotification = null;
+                this.currentNotification.title = '';
+                this.currentNotification.texts = [];
+                this.currentNotification.ids = [];
+                this.currentNotification.timeouts.forEach((time) => {
+                    clearTimeout(time);
+                });
+                this.currentNotification.timeouts = [];
+            }
+        };
+
+        if (this.alertNotification && this.currentNotification.title == notification.title) {
+            if (this.currentNotification.ids.indexOf(notification.id) != -1) {
+                // Notification already shown, don't show it again, just renew the timeout.
+                return;
+            }
+
+            // Same title and the notification is shown, update it.
+            this.currentNotification.texts.push(notification.text);
+            this.currentNotification.ids.push(notification.id);
+            if (this.currentNotification.texts.length > 3) {
+                this.currentNotification.texts.shift();
+                this.currentNotification.ids.shift();
+                clearTimeout(this.currentNotification.timeouts.shift());
+            }
+        } else {
+            this.currentNotification.timeouts.forEach((time) => {
+                clearTimeout(time);
+            });
+            this.currentNotification.timeouts = [];
+
+            // Not shown or title is different, set new data.
+            this.currentNotification.title = notification.title;
+            this.currentNotification.texts = [notification.text];
+            this.currentNotification.ids = [notification.id];
+        }
+
+        const text = '<p>' + this.currentNotification.texts.join('</p><p>') + '</p>';
+        if (this.alertNotification) {
+            this.alertNotification.setTitle(this.currentNotification.title);
+            this.alertNotification.setMessage(text);
+        } else {
+            this.alertNotification = this.alertCtrl.create({
+                title: this.currentNotification.title,
+                message: text,
+                cssClass: 'core-inapp-notification',
+                enableBackdropDismiss: false,
+                buttons: [{
+                    text: this.translate.instant('core.dismiss'),
+                    role: 'cancel',
+                    handler: (): void => {
+                        clearAlert(true);
+                    }
+                }]
+            });
+        }
+
+        this.alertNotification.present();
+
+        this.currentNotification.timeouts.push(setTimeout(() => {
+            clearAlert();
+        }, 4000));
     }
 
     /**
@@ -501,5 +603,19 @@ export class CoreLocalNotificationsProvider {
         };
 
         return this.appDB.insertRecord(this.TRIGGERED_TABLE, entry);
+    }
+
+    /**
+     * Update a component name.
+     *
+     * @param {string} oldName The old name.
+     * @param {string}  newName The new name.
+     * @return {Promise<any>} Promise resolved when done.
+     */
+    updateComponentName(oldName: string, newName: string): Promise<any> {
+        const oldId = this.COMPONENTS_TABLE + '#' + oldName,
+            newId = this.COMPONENTS_TABLE + '#' + newName;
+
+        return this.appDB.updateRecords(this.COMPONENTS_TABLE, {id: newId}, {id: oldId});
     }
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injector } from '@angular/core';
+import { Injector, Input, NgZone } from '@angular/core';
 import { Content } from 'ionic-angular';
 import { CoreSitesProvider } from '@providers/sites';
 import { CoreCourseProvider } from '@core/course/providers/course';
@@ -26,6 +26,8 @@ import { CoreCourseModuleMainResourceComponent } from './main-resource-component
  * Template class to easily create CoreCourseModuleMainComponent of activities.
  */
 export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainResourceComponent {
+    @Input() group?: number; // Group ID the component belongs to.
+
     moduleName: string; // Raw module name to be translated. It will be translated on init.
 
     // Data for context menu.
@@ -58,10 +60,14 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
         this.modulePrefetchDelegate = injector.get(CoreCourseModulePrefetchDelegate);
 
         const network = injector.get(Network);
+        const zone = injector.get(NgZone);
 
         // Refresh online status when changes.
         this.onlineObserver = network.onchange().subscribe((online) => {
-            this.isOnline = online;
+            // Execute the callback in the Angular zone, so change detection doesn't stop working.
+            zone.run(() => {
+                this.isOnline = online;
+            });
         });
     }
 
@@ -122,6 +128,25 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
         }).then(() => {
             return this.loadContent(true, sync, showErrors);
         }).finally(() =>  {
+            this.refreshIcon = 'refresh';
+            this.syncIcon = 'sync';
+        });
+    }
+
+    /**
+     * Show loading and perform the load content function.
+     *
+     * @param  {boolean}      [sync=false]       If the fetch needs syncing.
+     * @param  {boolean}      [showErrors=false] Wether to show errors to the user or hide them.
+     * @return {Promise<any>} Resolved when done.
+     */
+    protected showLoadingAndFetch(sync: boolean = false, showErrors: boolean = false): Promise<any> {
+        this.refreshIcon = 'spinner';
+        this.syncIcon = 'spinner';
+        this.loaded = false;
+        this.content && this.content.scrollToTop();
+
+        return this.loadContent(false, sync, showErrors).finally(() => {
             this.refreshIcon = 'refresh';
             this.syncIcon = 'sync';
         });

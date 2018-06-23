@@ -25,6 +25,14 @@ import { AddonModChoicePrefetchHandler } from './providers/prefetch-handler';
 import { AddonModChoiceSyncProvider } from './providers/sync';
 import { AddonModChoiceSyncCronHandler } from './providers/sync-cron-handler';
 import { AddonModChoiceOfflineProvider } from './providers/offline';
+import { CoreUpdateManagerProvider } from '@providers/update-manager';
+
+// List of providers (without handlers).
+export const ADDON_MOD_CHOICE_PROVIDERS: any[] = [
+    AddonModChoiceProvider,
+    AddonModChoiceSyncProvider,
+    AddonModChoiceOfflineProvider
+];
 
 @NgModule({
     declarations: [
@@ -34,22 +42,38 @@ import { AddonModChoiceOfflineProvider } from './providers/offline';
     ],
     providers: [
         AddonModChoiceProvider,
+        AddonModChoiceSyncProvider,
+        AddonModChoiceOfflineProvider,
         AddonModChoiceModuleHandler,
         AddonModChoicePrefetchHandler,
         AddonModChoiceLinkHandler,
-        AddonModChoiceSyncCronHandler,
-        AddonModChoiceSyncProvider,
-        AddonModChoiceOfflineProvider
+        AddonModChoiceSyncCronHandler
     ]
 })
 export class AddonModChoiceModule {
     constructor(moduleDelegate: CoreCourseModuleDelegate, moduleHandler: AddonModChoiceModuleHandler,
             prefetchDelegate: CoreCourseModulePrefetchDelegate, prefetchHandler: AddonModChoicePrefetchHandler,
             contentLinksDelegate: CoreContentLinksDelegate, linkHandler: AddonModChoiceLinkHandler,
-            cronDelegate: CoreCronDelegate, syncHandler: AddonModChoiceSyncCronHandler) {
+            cronDelegate: CoreCronDelegate, syncHandler: AddonModChoiceSyncCronHandler, updateManager: CoreUpdateManagerProvider) {
         moduleDelegate.registerHandler(moduleHandler);
         prefetchDelegate.registerHandler(prefetchHandler);
         contentLinksDelegate.registerHandler(linkHandler);
         cronDelegate.register(syncHandler);
+
+        // Allow migrating the tables from the old app to the new schema.
+        updateManager.registerSiteTableMigration({
+            name: 'mma_mod_choice_offline_responses',
+            newName: AddonModChoiceOfflineProvider.CHOICE_TABLE,
+            fields: [
+                {
+                    name: 'responses',
+                    type: 'object'
+                },
+                {
+                    name: 'deleting',
+                    type: 'boolean'
+                }
+            ]
+        });
     }
 }

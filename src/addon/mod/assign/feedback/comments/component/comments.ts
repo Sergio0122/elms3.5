@@ -20,7 +20,7 @@ import { CoreTextUtilsProvider } from '@providers/utils/text';
 import { AddonModAssignProvider } from '../../../providers/assign';
 import { AddonModAssignOfflineProvider } from '../../../providers/assign-offline';
 import { AddonModAssignFeedbackDelegate } from '../../../providers/feedback-delegate';
-import { AddonModAssignFeedbackPluginComponent } from '../../../classes/feedback-plugin-component';
+import { AddonModAssignFeedbackPluginComponentBase } from '../../../classes/feedback-plugin-component';
 import { AddonModAssignFeedbackCommentsHandler } from '../providers/handler';
 
 /**
@@ -28,9 +28,9 @@ import { AddonModAssignFeedbackCommentsHandler } from '../providers/handler';
  */
 @Component({
     selector: 'addon-mod-assign-feedback-comments',
-    templateUrl: 'comments.html'
+    templateUrl: 'addon-mod-assign-feedback-comments.html'
 })
-export class AddonModAssignFeedbackCommentsComponent extends AddonModAssignFeedbackPluginComponent implements OnInit {
+export class AddonModAssignFeedbackCommentsComponent extends AddonModAssignFeedbackPluginComponentBase implements OnInit {
 
     control: FormControl;
     component = AddonModAssignProvider.COMPONENT;
@@ -53,22 +53,7 @@ export class AddonModAssignFeedbackCommentsComponent extends AddonModAssignFeedb
      * Component being initialized.
      */
     ngOnInit(): void {
-        let promise,
-            rteEnabled;
-
-        // Check if rich text editor is enabled.
-        if (this.edit) {
-            promise = this.domUtils.isRichTextEditorEnabled();
-        } else {
-            // We aren't editing, so no rich text editor.
-            promise = Promise.resolve(false);
-        }
-
-        promise.then((enabled) => {
-            rteEnabled = enabled;
-
-            return this.getText(rteEnabled);
-        }).then((text) => {
+        this.getText().then((text) => {
 
             this.text = text;
 
@@ -113,10 +98,9 @@ export class AddonModAssignFeedbackCommentsComponent extends AddonModAssignFeedb
     /**
      * Get the text for the plugin.
      *
-     * @param {boolean} rteEnabled Whether Rich Text Editor is enabled.
      * @return {Promise<string>} Promise resolved with the text.
      */
-    protected getText(rteEnabled: boolean): Promise<string> {
+    protected getText(): Promise<string> {
         // Check if the user already modified the comment.
         return this.feedbackDelegate.getPluginDraftData(this.assign.id, this.userId, this.plugin).then((draft) => {
             if (draft) {
@@ -128,19 +112,19 @@ export class AddonModAssignFeedbackCommentsComponent extends AddonModAssignFeedb
                 return this.assignOfflineProvider.getSubmissionGrade(this.assign.id, this.userId).catch(() => {
                     // No offline data found.
                 }).then((offlineData) => {
-                    if (offlineData && offlineData.pluginData && offlineData.pluginData.assignfeedbackcomments_editor) {
+                    if (offlineData && offlineData.plugindata && offlineData.plugindata.assignfeedbackcomments_editor) {
                         // Save offline as draft.
                         this.isSent = false;
                         this.feedbackDelegate.saveFeedbackDraft(this.assign.id, this.userId, this.plugin,
-                                offlineData.pluginData.assignfeedbackcomments_editor);
+                                offlineData.plugindata.assignfeedbackcomments_editor);
 
-                        return offlineData.pluginData.assignfeedbackcomments_editor.text;
+                        return offlineData.plugindata.assignfeedbackcomments_editor.text;
                     }
 
                     // No offline data found, return online text.
                     this.isSent = true;
 
-                    return this.assignProvider.getSubmissionPluginText(this.plugin, this.edit && !rteEnabled);
+                    return this.assignProvider.getSubmissionPluginText(this.plugin);
                 });
             }
         });

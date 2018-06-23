@@ -42,7 +42,7 @@ import { AddonModAssignSubmissionPluginComponent } from '../submission-plugin/su
  */
 @Component({
     selector: 'addon-mod-assign-submission',
-    templateUrl: 'submission.html',
+    templateUrl: 'addon-mod-assign-submission.html',
 })
 export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     @ViewChild(CoreTabsComponent) tabs: CoreTabsComponent;
@@ -314,6 +314,20 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * User entered the page that contains the component.
+     */
+    ionViewDidEnter(): void {
+        this.tabs && this.tabs.ionViewDidEnter();
+    }
+
+    /**
+     * User left the page that contains the component.
+     */
+    ionViewDidLeave(): void {
+        this.tabs && this.tabs.ionViewDidLeave();
+    }
+
+    /**
      * Invalidate and refresh data.
      *
      * @return {Promise<any>} Promise resolved when done.
@@ -384,7 +398,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
 
             // Check if there's any offline data for this submission.
             promises.push(this.assignOfflineProvider.getSubmission(assign.id, this.submitId).then((data) => {
-                this.hasOffline = data && data.pluginData && Object.keys(data.pluginData).length > 0;
+                this.hasOffline = data && data.plugindata && Object.keys(data.plugindata).length > 0;
                 this.submittedOffline = data && data.submitted;
             }).catch(() => {
                 // No offline data found.
@@ -561,8 +575,8 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
                             this.originalGrades.grade = this.grade.grade;
                         }
 
-                        this.grade.applyToAll = data.applyToAll;
-                        this.grade.addAttempt = data.addAttempt;
+                        this.grade.applyToAll = data.applytoall;
+                        this.grade.addAttempt = data.addattempt;
                         this.originalGrades.applyToAll = this.grade.applyToAll;
                         this.originalGrades.addAttempt = this.grade.addAttempt;
 

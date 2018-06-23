@@ -14,6 +14,7 @@
 
 import { NgModule } from '@angular/core';
 import { CoreCronDelegate } from '@providers/cron';
+import { CoreContentLinksDelegate } from '@core/contentlinks/providers/delegate';
 import { CoreCourseModuleDelegate } from '@core/course/providers/module-delegate';
 import { CoreCourseModulePrefetchDelegate } from '@core/course/providers/module-prefetch-delegate';
 import { AddonModAssignProvider } from './providers/assign';
@@ -27,8 +28,20 @@ import { AddonModAssignDefaultSubmissionHandler } from './providers/default-subm
 import { AddonModAssignModuleHandler } from './providers/module-handler';
 import { AddonModAssignPrefetchHandler } from './providers/prefetch-handler';
 import { AddonModAssignSyncCronHandler } from './providers/sync-cron-handler';
+import { AddonModAssignIndexLinkHandler } from './providers/index-link-handler';
 import { AddonModAssignSubmissionModule } from './submission/submission.module';
 import { AddonModAssignFeedbackModule } from './feedback/feedback.module';
+import { CoreUpdateManagerProvider } from '@providers/update-manager';
+
+// List of providers (without handlers).
+export const ADDON_MOD_ASSIGN_PROVIDERS: any[] = [
+    AddonModAssignProvider,
+    AddonModAssignOfflineProvider,
+    AddonModAssignSyncProvider,
+    AddonModAssignHelperProvider,
+    AddonModAssignFeedbackDelegate,
+    AddonModAssignSubmissionDelegate
+];
 
 @NgModule({
     declarations: [
@@ -48,15 +61,70 @@ import { AddonModAssignFeedbackModule } from './feedback/feedback.module';
         AddonModAssignDefaultSubmissionHandler,
         AddonModAssignModuleHandler,
         AddonModAssignPrefetchHandler,
-        AddonModAssignSyncCronHandler
+        AddonModAssignSyncCronHandler,
+        AddonModAssignIndexLinkHandler
     ]
 })
 export class AddonModAssignModule {
     constructor(moduleDelegate: CoreCourseModuleDelegate, moduleHandler: AddonModAssignModuleHandler,
             prefetchDelegate: CoreCourseModulePrefetchDelegate, prefetchHandler: AddonModAssignPrefetchHandler,
-            cronDelegate: CoreCronDelegate, syncHandler: AddonModAssignSyncCronHandler) {
+            cronDelegate: CoreCronDelegate, syncHandler: AddonModAssignSyncCronHandler, updateManager: CoreUpdateManagerProvider,
+            contentLinksDelegate: CoreContentLinksDelegate, linkHandler: AddonModAssignIndexLinkHandler) {
         moduleDelegate.registerHandler(moduleHandler);
         prefetchDelegate.registerHandler(prefetchHandler);
         cronDelegate.register(syncHandler);
+        contentLinksDelegate.registerHandler(linkHandler);
+
+        // Allow migrating the tables from the old app to the new schema.
+        updateManager.registerSiteTablesMigration([
+            {
+                name: 'mma_mod_assign_submissions',
+                newName: AddonModAssignOfflineProvider.SUBMISSIONS_TABLE,
+                fields: [
+                    {
+                        name: 'assignmentid',
+                        newName: 'assignid'
+                    },
+                    {
+                        name: 'submitted',
+                        type: 'boolean'
+                    },
+                    {
+                        name: 'submissionstatement',
+                        type: 'boolean'
+                    },
+                    {
+                        name: 'plugindata',
+                        type: 'object'
+                    }
+                ]
+            },
+            {
+                name: 'mma_mod_assign_submissions_grading',
+                newName: AddonModAssignOfflineProvider.SUBMISSIONS_GRADES_TABLE,
+                fields: [
+                    {
+                        name: 'assignmentid',
+                        newName: 'assignid'
+                    },
+                    {
+                        name: 'addattempt',
+                        type: 'boolean'
+                    },
+                    {
+                        name: 'applytoall',
+                        type: 'boolean'
+                    },
+                    {
+                        name: 'outcomes',
+                        type: 'object'
+                    },
+                    {
+                        name: 'plugindata',
+                        type: 'object'
+                    }
+                ]
+            }
+        ]);
     }
 }

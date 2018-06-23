@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { Platform } from 'ionic-angular';
 import { InAppBrowser, InAppBrowserObject } from '@ionic-native/in-app-browser';
 import { Clipboard } from '@ionic-native/clipboard';
@@ -64,7 +64,7 @@ export class CoreUtilsProvider {
             private domUtils: CoreDomUtilsProvider, logger: CoreLoggerProvider, private translate: TranslateService,
             private platform: Platform, private langProvider: CoreLangProvider, private eventsProvider: CoreEventsProvider,
             private fileOpener: FileOpener, private mimetypeUtils: CoreMimetypeUtilsProvider, private webIntent: WebIntent,
-            private wsProvider: CoreWSProvider) {
+            private wsProvider: CoreWSProvider, private zone: NgZone) {
         this.logger = logger.getInstance('CoreUtilsProvider');
     }
 
@@ -756,14 +756,44 @@ export class CoreUtilsProvider {
         this.iabInstance = this.iab.create(url, '_blank', options);
 
         if (this.appProvider.isDesktop() || this.appProvider.isMobile()) {
+            let loadStopSubscription;
+            const loadStartUrls = [];
+
             // Trigger global events when a url is loaded or the window is closed. This is to make it work like in Ionic 1.
             const loadStartSubscription = this.iabInstance.on('loadstart').subscribe((event) => {
-                this.eventsProvider.trigger(CoreEventsProvider.IAB_LOAD_START, event);
+                // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                this.zone.run(() => {
+                    // Store the last loaded URLs (max 10).
+                    loadStartUrls.push(event.url);
+                    if (loadStartUrls.length > 10) {
+                        loadStartUrls.shift();
+                    }
+
+                    this.eventsProvider.trigger(CoreEventsProvider.IAB_LOAD_START, event);
+                });
             });
+
+            if (this.platform.is('android')) {
+                // Load stop is needed with InAppBrowser v3. Custom URL schemes no longer trigger load start, simulate it.
+                loadStopSubscription = this.iabInstance.on('loadstop').subscribe((event) => {
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(() => {
+                        if (loadStartUrls.indexOf(event.url) == -1) {
+                            // The URL was stopped but not started, probably a custom URL scheme.
+                            this.eventsProvider.trigger(CoreEventsProvider.IAB_LOAD_START, event);
+                        }
+                    });
+                });
+            }
+
             const exitSubscription = this.iabInstance.on('exit').subscribe((event) => {
-                loadStartSubscription.unsubscribe();
-                exitSubscription.unsubscribe();
-                this.eventsProvider.trigger(CoreEventsProvider.IAB_EXIT, event);
+                // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                this.zone.run(() => {
+                    loadStartSubscription.unsubscribe();
+                    loadStopSubscription && loadStopSubscription.unsubscribe();
+                    exitSubscription.unsubscribe();
+                    this.eventsProvider.trigger(CoreEventsProvider.IAB_EXIT, event);
+                });
             });
         }
 

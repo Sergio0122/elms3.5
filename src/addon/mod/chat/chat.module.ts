@@ -20,6 +20,11 @@ import { AddonModChatProvider } from './providers/chat';
 import { AddonModChatLinkHandler } from './providers/link-handler';
 import { AddonModChatModuleHandler } from './providers/module-handler';
 
+// List of providers (without handlers).
+export const ADDON_MOD_CHAT_PROVIDERS: any[] = [
+    AddonModChatProvider
+];
+
 @NgModule({
     declarations: [
     ],

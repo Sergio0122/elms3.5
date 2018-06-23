@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { Platform } from 'ionic-angular';
 import { Badge } from '@ionic-native/badge';
 import { Push, PushObject, PushOptions } from '@ionic-native/push';
@@ -33,17 +33,16 @@ import { CoreConfigConstants } from '../../../configconstants';
  */
 @Injectable()
 export class AddonPushNotificationsProvider {
-
     protected logger;
     protected pushID: string;
     protected appDB: any;
     static COMPONENT = 'AddonPushNotificationsProvider';
 
     // Variables for database.
-    protected BADGE_TABLE = 'addon_pushnotifications_badge';
+    static BADGE_TABLE = 'addon_pushnotifications_badge';
     protected tablesSchema = [
         {
-            name: this.BADGE_TABLE,
+            name: AddonPushNotificationsProvider.BADGE_TABLE,
             columns: [
                 {
                     name: 'siteid',
@@ -66,7 +65,7 @@ export class AddonPushNotificationsProvider {
             protected pushNotificationsDelegate: AddonPushNotificationsDelegate, protected sitesProvider: CoreSitesProvider,
             private badge: Badge, private localNotificationsProvider: CoreLocalNotificationsProvider,
             private utils: CoreUtilsProvider, private textUtils: CoreTextUtilsProvider, private push: Push,
-            private configProvider: CoreConfigProvider, private device: Device) {
+            private configProvider: CoreConfigProvider, private device: Device, private zone: NgZone) {
         this.logger = logger.getInstance('AddonPushNotificationsProvider');
         this.appDB = appProvider.getDB();
         this.appDB.createTablesFromSchema(this.tablesSchema);
@@ -79,7 +78,7 @@ export class AddonPushNotificationsProvider {
      * @return {Promise<any>}  Resolved when done.
      */
     cleanSiteCounters(siteId: string): Promise<any> {
-        return this.appDB.deleteRecords(this.BADGE_TABLE, {siteid: siteId} ).finally(() => {
+        return this.appDB.deleteRecords(AddonPushNotificationsProvider.BADGE_TABLE, {siteid: siteId} ).finally(() => {
             this.updateAppCounter();
         });
     }
@@ -327,19 +326,28 @@ export class AddonPushNotificationsProvider {
                 const pushObject: PushObject = this.push.init(options);
 
                 pushObject.on('notification').subscribe((notification: any) => {
-                    this.logger.log('Received a notification', notification);
-                    this.onMessageReceived(notification);
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(() => {
+                        this.logger.log('Received a notification', notification);
+                        this.onMessageReceived(notification);
+                    });
                 });
 
                 pushObject.on('registration').subscribe((data: any) => {
-                    this.pushID = data.registrationId;
-                    this.registerDeviceOnMoodle().catch((error) => {
-                        this.logger.warn('Can\'t register device', error);
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(() => {
+                        this.pushID = data.registrationId;
+                        this.registerDeviceOnMoodle().catch((error) => {
+                            this.logger.warn('Can\'t register device', error);
+                        });
                     });
                 });
 
                 pushObject.on('error').subscribe((error: any) => {
-                    this.logger.warn('Error with Push plugin', error);
+                    // Execute the callback in the Angular zone, so change detection doesn't stop working.
+                    this.zone.run(() => {
+                        this.logger.warn('Error with Push plugin', error);
+                    });
                 });
             });
         } catch (ex) {
@@ -383,7 +391,7 @@ export class AddonPushNotificationsProvider {
      * @return {Promise<any>}         Promise resolved with the stored badge counter for the addon or site or 0 if none.
      */
     protected getAddonBadge(siteId?: string, addon: string = 'site'): Promise<any> {
-        return this.appDB.getRecord(this.BADGE_TABLE, {siteid: siteId, addon: addon}).then((entry) => {
+        return this.appDB.getRecord(AddonPushNotificationsProvider.BADGE_TABLE, {siteid: siteId, addon: addon}).then((entry) => {
              return (entry && entry.number) || 0;
         }).catch(() => {
             return 0;
@@ -407,7 +415,7 @@ export class AddonPushNotificationsProvider {
             number: value
         };
 
-        return this.appDB.insertRecord(this.BADGE_TABLE, entry).then(() => {
+        return this.appDB.insertRecord(AddonPushNotificationsProvider.BADGE_TABLE, entry).then(() => {
             return value;
         });
     }

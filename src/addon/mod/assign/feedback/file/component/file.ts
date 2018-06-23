@@ -15,16 +15,16 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from 'ionic-angular';
 import { AddonModAssignProvider } from '../../../providers/assign';
-import { AddonModAssignFeedbackPluginComponent } from '../../../classes/feedback-plugin-component';
+import { AddonModAssignFeedbackPluginComponentBase } from '../../../classes/feedback-plugin-component';
 
 /**
  * Component to render a file feedback plugin.
  */
 @Component({
     selector: 'addon-mod-assign-feedback-file',
-    templateUrl: 'file.html'
+    templateUrl: 'addon-mod-assign-feedback-file.html'
 })
-export class AddonModAssignFeedbackFileComponent extends AddonModAssignFeedbackPluginComponent implements OnInit {
+export class AddonModAssignFeedbackFileComponent extends AddonModAssignFeedbackPluginComponentBase implements OnInit {
 
     component = AddonModAssignProvider.COMPONENT;
     files: any[];

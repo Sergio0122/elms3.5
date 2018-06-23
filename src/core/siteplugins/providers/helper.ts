@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable, Injector } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Http } from '@angular/http';
 import { TranslateService } from '@ngx-translate/core';
+import { CoreAppProvider } from '@providers/app';
 import { CoreEventsProvider } from '@providers/events';
 import { CoreFilepoolProvider } from '@providers/filepool';
 import { CoreLangProvider } from '@providers/lang';
 import { CoreLoggerProvider } from '@providers/logger';
 import { CoreSite } from '@classes/site';
 import { CoreSitesProvider } from '@providers/sites';
+import { CoreDomUtilsProvider } from '@providers/utils/dom';
 import { CoreTextUtilsProvider } from '@providers/utils/text';
 import { CoreUrlUtilsProvider } from '@providers/utils/url';
 import { CoreUtilsProvider } from '@providers/utils/utils';
 import { CoreSitePluginsProvider } from './siteplugins';
 import { CoreCompileProvider } from '@core/compile/providers/compile';
 import { CoreQuestionProvider } from '@core/question/providers/question';
+import { CoreCourseProvider } from '@core/course/providers/course';
 
 // Delegates
 import { CoreMainMenuDelegate } from '@core/mainmenu/providers/delegate';
@@ -43,6 +46,7 @@ import { AddonMessageOutputDelegate } from '@addon/messageoutput/providers/deleg
 import { AddonModQuizAccessRuleDelegate } from '@addon/mod/quiz/providers/access-rules-delegate';
 import { AddonModAssignFeedbackDelegate } from '@addon/mod/assign/providers/feedback-delegate';
 import { AddonModAssignSubmissionDelegate } from '@addon/mod/assign/providers/submission-delegate';
+import { AddonWorkshopAssessmentStrategyDelegate } from '@addon/mod/workshop/providers/assessment-strategy-delegate';
 
 // Handler classes.
 import { CoreSitePluginsCourseFormatHandler } from '../classes/handlers/course-format-handler';
@@ -59,6 +63,7 @@ import { CoreSitePluginsMessageOutputHandler } from '../classes/handlers/message
 import { CoreSitePluginsQuizAccessRuleHandler } from '../classes/handlers/quiz-access-rule-handler';
 import { CoreSitePluginsAssignFeedbackHandler } from '../classes/handlers/assign-feedback-handler';
 import { CoreSitePluginsAssignSubmissionHandler } from '../classes/handlers/assign-submission-handler';
+import { CoreSitePluginsWorkshopAssessmentStrategyHandler } from '../classes/handlers/workshop-assessment-strategy-handler';
 
 /**
  * Helper service to provide functionalities regarding site plugins. It basically has the features to load and register site
@@ -73,7 +78,7 @@ import { CoreSitePluginsAssignSubmissionHandler } from '../classes/handlers/assi
 export class CoreSitePluginsHelperProvider {
     protected logger;
 
-    constructor(logger: CoreLoggerProvider, private sitesProvider: CoreSitesProvider,  private injector: Injector,
+    constructor(logger: CoreLoggerProvider, private sitesProvider: CoreSitesProvider, private domUtils: CoreDomUtilsProvider,
             private mainMenuDelegate: CoreMainMenuDelegate, private moduleDelegate: CoreCourseModuleDelegate,
             private userDelegate: CoreUserDelegate, private langProvider: CoreLangProvider, private http: Http,
             private sitePluginsProvider: CoreSitePluginsProvider, private prefetchDelegate: CoreCourseModulePrefetchDelegate,
@@ -85,7 +90,9 @@ export class CoreSitePluginsHelperProvider {
             private questionBehaviourDelegate: CoreQuestionBehaviourDelegate, private questionProvider: CoreQuestionProvider,
             private messageOutputDelegate: AddonMessageOutputDelegate, private accessRulesDelegate: AddonModQuizAccessRuleDelegate,
             private assignSubmissionDelegate: AddonModAssignSubmissionDelegate, private translate: TranslateService,
-            private assignFeedbackDelegate: AddonModAssignFeedbackDelegate) {
+            private assignFeedbackDelegate: AddonModAssignFeedbackDelegate, private appProvider: CoreAppProvider,
+            private workshopAssessmentStrategyDelegate: AddonWorkshopAssessmentStrategyDelegate,
+            private courseProvider: CoreCourseProvider) {
 
         this.logger = logger.getInstance('CoreSitePluginsHelperProvider');
 
@@ -483,6 +490,10 @@ export class CoreSitePluginsHelperProvider {
                     promise = Promise.resolve(this.registerAssignSubmissionHandler(plugin, handlerName, handlerSchema));
                     break;
 
+                case 'AddonWorkshopAssessmentStrategyDelegate':
+                    promise = Promise.resolve(this.registerWorkshopAssessmentStrategyHandler(plugin, handlerName, handlerSchema));
+                    break;
+
                 default:
                     // Nothing to do.
                     promise = Promise.resolve();
@@ -728,8 +739,9 @@ export class CoreSitePluginsHelperProvider {
 
         if (handlerSchema.offlinefunctions && Object.keys(handlerSchema.offlinefunctions).length) {
             // Register the prefetch handler.
-            this.prefetchDelegate.registerHandler(new CoreSitePluginsModulePrefetchHandler(
-                this.injector, this.sitePluginsProvider, plugin.component, uniqueName, modName, handlerSchema));
+            this.prefetchDelegate.registerHandler(new CoreSitePluginsModulePrefetchHandler(this.translate, this.appProvider,
+                this.utils, this.courseProvider, this.filepoolProvider, this.sitesProvider, this.domUtils,
+                this.sitePluginsProvider, plugin.component, uniqueName, modName, handlerSchema));
         }
 
         return modName;
@@ -862,6 +874,26 @@ export class CoreSitePluginsHelperProvider {
             const fieldType = plugin.component.replace('profilefield_', '');
 
             return new CoreSitePluginsUserProfileFieldHandler(uniqueName, fieldType);
+        });
+    }
+
+    /**
+     * Given a handler in a plugin, register it in the workshop assessment strategy delegate.
+     *
+     * @param {any} plugin Data of the plugin.
+     * @param {string} handlerName Name of the handler in the plugin.
+     * @param {any} handlerSchema Data about the handler.
+     * @return {string|Promise<string>} A string (or a promise resolved with a string) to identify the handler.
+     */
+    protected registerWorkshopAssessmentStrategyHandler(plugin: any, handlerName: string, handlerSchema: any)
+            : string | Promise<string> {
+
+        return this.registerComponentInitHandler(plugin, handlerName, handlerSchema, this.workshopAssessmentStrategyDelegate,
+                    (uniqueName: string, result: any) => {
+
+            const strategyName = plugin.component.replace('workshopform_', '');
+
+            return new CoreSitePluginsWorkshopAssessmentStrategyHandler(uniqueName, strategyName);
         });
     }
 }
