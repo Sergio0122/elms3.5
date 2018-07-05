@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.evotor.moodlemobile" version="3.5.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Moodle</name>
-    <description>Moodle official app</description>
+    <name>Evotor LMS Mobile</name>
+    <description>Evotor LMS Mobile</description>
     <author email="lms@evotor.ru" href="http://lms.evotor.ru">Evotor team</author>
     <content src="index.html" />
-    <access origin="*" />
+       <access origin="*" />
     <access launch-external="yes" origin="tel:*" />
     <access launch-external="yes" origin="mailto:*" />
     <access launch-external="yes" origin="geo:*" />
