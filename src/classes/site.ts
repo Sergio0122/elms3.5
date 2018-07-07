@@ -376,7 +376,10 @@ export class CoreSite {
      * @param {any} Config.
      */
     setConfig(config: any): void {
-        config.tool_mobile_disabledfeatures = this.textUtils.treatDisabledFeatures(config.tool_mobile_disabledfeatures);
+        if (config) {
+            config.tool_mobile_disabledfeatures = this.textUtils.treatDisabledFeatures(config.tool_mobile_disabledfeatures);
+        }
+
         this.config = config;
         this.calculateOfflineDisabled();
     }
@@ -1078,7 +1081,7 @@ export class CoreSite {
                         return Promise.reject(this.translate.instant('core.unexpectederror'));
                 }
             } else {
-                return { code: code, service: service, coresupported: !!data.coresupported };
+                return { code: code, service: service, coreSupported: !!data.coresupported };
             }
         }, () => {
             return { code: 0 };

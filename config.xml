@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.evotor.moodlemobile" version="3.5.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Evotor LMS Mobile</name>
-    <description>Evotor LMS Mobile</description>
-    <author email="lms@evotor.ru" href="http://lms.evotor.ru">Evotor team</author>
+<widget id="com.moodle.moodlemobile" version="3.5.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Moodle</name>
+    <description>Moodle official app</description>
+    <author email="mobile@moodle.com" href="http://moodle.com">Moodle Mobile team</author>
     <content src="index.html" />
     <access origin="*" />
     <access launch-external="yes" origin="tel:*" />
@@ -23,7 +23,7 @@
     <preference name="webviewbounce" value="false" />
     <preference name="AppendUserAgent" value="MoodleMobile" />
     <preference name="android-minSdkVersion" value="19" />
-    <preference name="android-targetSdkVersion" value="23" />
+    <preference name="android-targetSdkVersion" value="19" />
     <preference name="UIWebViewBounce" value="false" />
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackupWebStorage" value="none" />
@@ -36,7 +36,6 @@
     <preference name="SplashScreenDelay" value="15000" />
     <preference name="SplashMaintainAspectRatio" value="true" />
     <preference name="LoadUrlTimeoutValue" value="60000" />
-    <preference name="phonegap-version" value="cli-7.1.0" />
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>

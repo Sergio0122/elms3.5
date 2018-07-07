@@ -97,6 +97,15 @@ export class CoreCourseFormatDefaultHandler implements CoreCourseFormatHandler {
      * @return {any|Promise<any>} Current section (or promise resolved with current section).
      */
     getCurrentSection(course: any, sections: any[]): any | Promise<any> {
+        if (!this.coursesProvider.isGetCoursesByFieldAvailable()) {
+            // Cannot get the current section, return the first one.
+            if (sections[0].id != CoreCourseProvider.ALL_SECTIONS_ID) {
+                return sections[0];
+            }
+
+            return sections[1];
+        }
+
         // We need the "marker" to determine the current section.
         return this.coursesProvider.getCoursesByField('id', course.id).catch(() => {
             // Ignore errors.
@@ -147,5 +156,16 @@ export class CoreCourseFormatDefaultHandler implements CoreCourseFormatHandler {
      */
     openCourse(navCtrl: NavController, course: any): Promise<any> {
         return navCtrl.push('CoreCourseSectionPage', { course: course });
+    }
+
+    /**
+     * Whether the view should be refreshed when completion changes. If your course format doesn't display
+     * activity completion then you should return false.
+     *
+     * @param {any} course The course.
+     * @return {boolean|Promise<boolean>} Whether course view should be refreshed when an activity completion changes.
+     */
+    shouldRefreshWhenCompletionChanges(course: any): boolean | Promise<boolean> {
+        return true;
     }
 }

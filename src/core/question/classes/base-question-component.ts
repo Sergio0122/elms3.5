@@ -297,6 +297,8 @@ export class CoreQuestionBaseComponent {
                 this.question.input.correctClass = 'core-question-correct';
             } else if (input.classList.contains('partiallycorrect')) {
                 this.question.input.correctClass = 'core-question-partiallycorrect';
+            } else {
+                this.question.input.correctClass = '';
             }
         }
 
@@ -478,11 +480,6 @@ export class CoreQuestionBaseComponent {
                 this.logger.warn('Aborting because of an error parsing options.', this.question.name, option.name);
 
                 return this.questionHelper.showComponentError(this.onAbort);
-            }
-
-            if (!this.question.multi && typeof this.question.singleChoiceModel == 'undefined') {
-                // We couldn't find the option to select, select the first one.
-                this.question.singleChoiceModel = options[0].value;
             }
         }
 

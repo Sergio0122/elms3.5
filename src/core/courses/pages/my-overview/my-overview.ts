@@ -71,6 +71,7 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
         future: {}
     };
     downloadAllCoursesEnabled: boolean;
+    siteName: string;
 
     protected prefetchIconsInitialized = false;
     protected isDestroyed;
@@ -82,6 +83,7 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
             private courseHelper: CoreCourseHelperProvider, private sitesProvider: CoreSitesProvider,
             private siteHomeProvider: CoreSiteHomeProvider, private courseOptionsDelegate: CoreCourseOptionsDelegate,
             private eventsProvider: CoreEventsProvider, private utils: CoreUtilsProvider) {
+        this.loadSiteName();
     }
 
     /**
@@ -102,6 +104,8 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
                 // Download all courses is enabled now, initialize it.
                 this.initPrefetchCoursesIcons();
             }
+
+            this.loadSiteName();
         });
 
         // Decide which tab to load first.
@@ -110,7 +114,7 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
                 displaySiteHome = site.getInfo() && site.getInfo().userhomepage === 0;
 
             this.siteHomeEnabled = enabled;
-            this.firstSelectedTab = displaySiteHome ? 0 : 2;
+            this.firstSelectedTab = displaySiteHome ? 0 : 1;
             this.tabsReady = true;
         });
     }
@@ -223,17 +227,19 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
                 return course.id;
             });
 
-            // Load course options of the course.
-            promises.push(this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
-                courses.forEach((course) => {
-                    course.navOptions = options.navOptions[course.id];
-                    course.admOptions = options.admOptions[course.id];
-                });
-            }));
+            if (this.coursesProvider.canGetAdminAndNavOptions()) {
+                // Load course options of the course.
+                promises.push(this.coursesProvider.getCoursesAdminAndNavOptions(courseIds).then((options) => {
+                    courses.forEach((course) => {
+                        course.navOptions = options.navOptions[course.id];
+                        course.admOptions = options.admOptions[course.id];
+                    });
+                }));
+            }
 
             this.courseIds = courseIds.join(',');
 
-            if (this.courseIds) {
+            if (this.courseIds && this.coursesProvider.isGetCoursesByFieldAvailable()) {
                 // Load course image of all the courses.
                 promises.push(this.coursesProvider.getCoursesByField('ids', this.courseIds).then((coursesInfo) => {
                     coursesInfo = this.utils.arrayToObject(coursesInfo, 'id');
@@ -470,6 +476,13 @@ export class CoreCoursesMyOverviewPage implements OnDestroy {
             });
 
         });
+    }
+
+    /**
+     * Load the site name.
+     */
+    protected loadSiteName(): void {
+        this.siteName = this.sitesProvider.getCurrentSite().getInfo().sitename;
     }
 
     /**
