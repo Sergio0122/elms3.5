@@ -36,7 +36,6 @@
     <preference name="SplashScreenDelay" value="15000" />
     <preference name="SplashMaintainAspectRatio" value="true" />
     <preference name="LoadUrlTimeoutValue" value="60000" />
-    <framework src="com.android.support:support-v4:27.0.1" />
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>
@@ -121,7 +120,6 @@
     <plugin name="ionic-plugin-keyboard" spec="2.2.1" />
     <plugin name="cordova-plugin-zip" spec="3.1.0" />
     <plugin name="cordova-plugin-local-notifications-mm" />
-    <plugin name="cordova-plugin-file-opener2" spec="~2.0.19" />
     <plugin name="com-darryncampbell-cordova-plugin-intent" spec="~1.0.2" />
     <plugin name="cordova-sqlite-evcore-extbuild-free" spec="~0.9.7" />
     <plugin name="cordova-plugin-badge" spec="0.8.7" />
