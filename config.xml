@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.evotor.moodlemobile" version="3.5.2"  xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
-    <name>Moodle</name>
+    <name>Evotor LMS Mobile</name>
     <description>Эвотор LMS Mobile официальное приложение</description>
     <author email="lms@evotor.ru" href="https://lms.evotor.ru">Evotor Team</author>
     <content src="index.html" />
