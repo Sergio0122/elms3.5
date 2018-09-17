@@ -40,8 +40,7 @@
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>
-        <gap:plugin name="cordova-android-support-gradle-release" spec="https://github.com/dpa99c/cordova-android-support-gradle-             release">
-
+        <gap:plugin name="cordova-android-support-gradle-release" spec="https://github.com/dpa99c/cordova-android-support-gradle-release">
         <variable name="ANDROID_SUPPORT_VERSION" value="27.+" />
 
     </gap:plugin>
