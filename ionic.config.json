@@ -1,6 +1,6 @@
 {
-  "name": "moodlemobile",
-  "app_id": "com.moodle.moodlemobile",
+  "name": "evotorlms",
+  "app_id": "com.evotor.moodlemobile",
   "type": "ionic-angular",
   "integrations": {
     "cordova": {},
