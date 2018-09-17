@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.moodle.moodlemobile" version="3.5.2" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Moodle</name>
-    <description>Moodle official app</description>
-    <author email="mobile@moodle.com" href="http://moodle.com">Moodle Mobile team</author>
+    <name>Evotor</name>
+    <description>Evotor LMS Mobile</description>
+    <author email="lms@evotor.ru" href="https://evotor.ru">Team Evotor</author>
     <content src="index.html" />
     <access origin="*" />
     <access launch-external="yes" origin="tel:*" />
@@ -40,10 +40,9 @@
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>
-        <gap:plugin name="cordova-android-support-gradle-release" spec="https://github.com/dpa99c/cordova-android-support-gradle-release">
-        <variable name="ANDROID_SUPPORT_VERSION" value="27.+" />
-
-    </gap:plugin>
+<gap:plugin name="cordova-android-support-gradle-release" spec="https://github.com/dpa99c/cordova-android-support-gradle-release">
+<variable name="ANDROID_SUPPORT_VERSION" value="27.0.1" />
+</gap:plugin>
     <platform name="android">
         <splash qualifier="land-ldpi" src="resources/android/splash/drawable-land-ldpi-screen.png" />
         <splash qualifier="land-mdpi" src="resources/android/splash/drawable-land-mdpi-screen.png" />
