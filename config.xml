@@ -6,14 +6,14 @@
         versionCode = "35200"
         android-versionCode="35200"
         version   = "3.5.2">
-    <name>Evotor LMS</name>
+    <name>Evotor</name>
 
     <description>
         Evotor LMS Mobile
     </description>
 
     <author href="https://evotor.ru" email="lms@evotor.ru">
-        Evotor
+        Evotor Team
     </author>
 
     <edit-config target="CFBundleShortVersionString" file="*-Info.plist" mode="merge">
