@@ -1,4 +1,4 @@
-page-core-login-site {
+ion-app.app-root page-core-login-site {
     .scroll-content {
         background: $core-login-page-background-color;
     }
@@ -17,7 +17,7 @@ page-core-login-site {
     }
 
     @if $core-login-button-outline {
-        .button-md.button-default-md {
+        .button-md.button-default-md, .button-ios.button-default-ios {
             @extend .button-md-light;
         }
     }

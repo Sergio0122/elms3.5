@@ -35,7 +35,8 @@ export class CoreDomUtilsProvider {
         'search', 'tel', 'text', 'time', 'url', 'week'];
     protected INSTANCE_ID_ATTR_NAME = 'core-instance-id';
 
-    protected element = document.createElement('div'); // Fake element to use in some functions, to prevent creating it each time.
+    protected template = document.createElement('template'); // A template element to convert HTML to element.
+
     protected matchesFn: string; // Name of the "matches" function to use when simulating a closest call.
     protected instances: {[id: string]: any} = {}; // Store component/directive instances by id.
     protected lastInstanceId = 0;
@@ -125,6 +126,19 @@ export class CoreDomUtilsProvider {
     }
 
     /**
+     * Convert some HTML as text into an HTMLElement. This HTML is put inside a div or a body.
+     *
+     * @param {string} html Text to convert.
+     * @return {HTMLElement} Element.
+     */
+    convertToElement(html: string): HTMLElement {
+        // Add a div to hold the content, that's the element that will be returned.
+        this.template.innerHTML = '<div>' + html + '</div>';
+
+        return <HTMLElement> this.template.content.children[0];
+    }
+
+    /**
      * Create a "cancelled" error. These errors won't display an error message in showErrorModal functions.
      *
      * @return {any} The error object.
@@ -169,8 +183,8 @@ export class CoreDomUtilsProvider {
         const urls = [];
         let elements;
 
-        this.element.innerHTML = html;
-        elements = this.element.querySelectorAll('a, img, audio, video, source, track');
+        const element = this.convertToElement(html);
+        elements = element.querySelectorAll('a, img, audio, video, source, track');
 
         for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
@@ -599,21 +613,21 @@ export class CoreDomUtilsProvider {
     removeElementFromHtml(html: string, selector: string, removeAll?: boolean): string {
         let selected;
 
-        this.element.innerHTML = html;
+        const element = this.convertToElement(html);
 
         if (removeAll) {
-            selected = this.element.querySelectorAll(selector);
+            selected = element.querySelectorAll(selector);
             for (let i = 0; i < selected.length; i++) {
                 selected[i].remove();
             }
         } else {
-            selected = this.element.querySelector(selector);
+            selected = element.querySelector(selector);
             if (selected) {
                 selected.remove();
             }
         }
 
-        return this.element.innerHTML;
+        return element.innerHTML;
     }
 
     /**
@@ -665,10 +679,10 @@ export class CoreDomUtilsProvider {
         let media,
             anchors;
 
-        this.element.innerHTML = html;
+        const element = this.convertToElement(html);
 
         // Treat elements with src (img, audio, video, ...).
-        media = this.element.querySelectorAll('img, video, audio, source, track');
+        media = Array.from(element.querySelectorAll('img, video, audio, source, track'));
         media.forEach((media: HTMLElement) => {
             let newSrc = paths[this.textUtils.decodeURIComponent(media.getAttribute('src'))];
 
@@ -686,7 +700,7 @@ export class CoreDomUtilsProvider {
         });
 
         // Now treat links.
-        anchors = this.element.querySelectorAll('a');
+        anchors = Array.from(element.querySelectorAll('a'));
         anchors.forEach((anchor: HTMLElement) => {
             const href = this.textUtils.decodeURIComponent(anchor.getAttribute('href')),
                 newUrl = paths[href];
@@ -700,7 +714,78 @@ export class CoreDomUtilsProvider {
             }
         });
 
-        return this.element.innerHTML;
+        return element.innerHTML;
+    }
+
+    /**
+     * Scroll to somehere in the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @param {number} x  The x-value to scroll to.
+     * @param {number} y  The y-value to scroll to.
+     * @param {number} [duration]  Duration of the scroll animation in milliseconds. Defaults to `300`.
+     * @returns {Promise} Returns a promise which is resolved when the scroll has completed.
+     */
+    scrollTo(content: Content, x: number, y: number, duration?: number, done?: Function): Promise<any> {
+        return content && content._scroll && content.scrollTo(x, y, duration, done);
+    }
+
+    /**
+     * Scroll to Bottom of the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @param {number} [duration]  Duration of the scroll animation in milliseconds. Defaults to `300`.
+     * @returns {Promise} Returns a promise which is resolved when the scroll has completed.
+     */
+    scrollToBottom(content: Content, duration?: number): Promise<any> {
+        return content && content._scroll && content.scrollToBottom(duration);
+    }
+
+    /**
+     * Scroll to Top of the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @param {number} [duration]  Duration of the scroll animation in milliseconds. Defaults to `300`.
+     * @returns {Promise} Returns a promise which is resolved when the scroll has completed.
+     */
+    scrollToTop(content: Content, duration?: number): Promise<any> {
+        return content && content._scroll && content.scrollToTop(duration);
+    }
+
+    /**
+     * Returns contentHeight of the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @return {number}         Content contentHeight or 0.
+     */
+    getContentHeight(content: Content): number {
+        return (content && content._scroll && content.contentHeight) || 0;
+    }
+
+    /**
+     * Returns scrollHeight of the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @return {number}         Content scrollHeight or 0.
+     */
+    getScrollHeight(content: Content): number {
+        return (content && content._scroll && content.scrollHeight) || 0;
+    }
+
+    /**
+     * Returns scrollTop of the content.
+     * Checks hidden property _scroll to avoid errors if view is not active.
+     *
+     * @param {Content} content Content where to execute the function.
+     * @return {number}         Content scrollTop or 0.
+     */
+    getScrollTop(content: Content): number {
+        return (content && content._scroll && content.scrollTop) || 0;
     }
 
     /**
@@ -717,7 +802,7 @@ export class CoreDomUtilsProvider {
             return false;
         }
 
-        content.scrollTo(position[0], position[1]);
+        this.scrollTo(content, position[0], position[1]);
 
         return true;
     }
@@ -736,7 +821,7 @@ export class CoreDomUtilsProvider {
             return false;
         }
 
-        content.scrollTo(position[0], position[1]);
+        this.scrollTo(content, position[0], position[1]);
 
         return true;
     }
@@ -1104,13 +1189,13 @@ export class CoreDomUtilsProvider {
     }
 
     /**
-     * Converts HTML formatted text to DOM element.
-     * @param  {string}      text HTML text.
-     * @return {HTMLCollection}      Same text converted to HTMLCollection.
+     * Converts HTML formatted text to DOM element(s).
+     *
+     * @param {string} text HTML text.
+     * @return {HTMLCollection} Same text converted to HTMLCollection.
      */
     toDom(text: string): HTMLCollection {
-        const element = document.createElement('div');
-        element.innerHTML = text;
+        const element = this.convertToElement(text);
 
         return element.children;
     }
@@ -1120,7 +1205,7 @@ export class CoreDomUtilsProvider {
      *
      * @param {HTMLElement} container The HTMLElement that can contain anchors.
      */
-    protected treatAnchors(container: HTMLElement): void {
+    treatAnchors(container: HTMLElement): void {
         const anchors = Array.from(container.querySelectorAll('a'));
 
         anchors.forEach((anchor) => {

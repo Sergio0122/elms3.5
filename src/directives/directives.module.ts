@@ -22,7 +22,8 @@ import { CoreKeepKeyboardDirective } from './keep-keyboard';
 import { CoreUserLinkDirective } from './user-link';
 import { CoreAutoRowsDirective } from './auto-rows';
 import { CoreLongPressDirective } from './long-press';
-import { CoreChartDirective } from './chart';
+import { CoreBackButtonDirective } from './back-button';
+import { CoreSupressEventsDirective } from './supress-events';
 
 @NgModule({
     declarations: [
@@ -35,7 +36,8 @@ import { CoreChartDirective } from './chart';
         CoreUserLinkDirective,
         CoreAutoRowsDirective,
         CoreLongPressDirective,
-        CoreChartDirective
+        CoreBackButtonDirective,
+        CoreSupressEventsDirective
     ],
     imports: [],
     exports: [
@@ -48,7 +50,8 @@ import { CoreChartDirective } from './chart';
         CoreUserLinkDirective,
         CoreAutoRowsDirective,
         CoreLongPressDirective,
-        CoreChartDirective
+        CoreBackButtonDirective,
+        CoreSupressEventsDirective
     ]
 })
 export class CoreDirectivesModule {}

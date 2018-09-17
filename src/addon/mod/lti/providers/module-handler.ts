@@ -14,6 +14,7 @@
 
 import { Injectable } from '@angular/core';
 import { NavController, NavOptions } from 'ionic-angular';
+import { DomSanitizer } from '@angular/platform-browser';
 import { CoreCourseModuleHandler, CoreCourseModuleHandlerData } from '@core/course/providers/module-delegate';
 import { CoreAppProvider } from '@providers/app';
 import { CoreCourseProvider } from '@core/course/providers/course';
@@ -36,7 +37,8 @@ export class AddonModLtiModuleHandler implements CoreCourseModuleHandler {
             private domUtils: CoreDomUtilsProvider,
             private filepoolProvider: CoreFilepoolProvider,
             private sitesProvider: CoreSitesProvider,
-            private ltiProvider: AddonModLtiProvider) {}
+            private ltiProvider: AddonModLtiProvider,
+            private sanitizer: DomSanitizer) {}
 
     /**
      * Check if the handler is enabled on a site level.
@@ -96,12 +98,15 @@ export class AddonModLtiModuleHandler implements CoreCourseModuleHandler {
             const icon = ltiData.secureicon || ltiData.icon;
             if (icon) {
                 const siteId = this.sitesProvider.getCurrentSiteId();
-                this.filepoolProvider.downloadUrl(siteId,  icon, false, AddonModLtiProvider.COMPONENT, module.id).then((url) => {
-                    data.icon = url;
+                this.filepoolProvider.downloadUrl(siteId,  icon, false, AddonModLtiProvider.COMPONENT, module.id).then(() => {
+                    // Get the internal URL.
+                    return this.filepoolProvider.getSrcByUrl(siteId, icon, AddonModLtiProvider.COMPONENT, module.id);
+                }).then((url) => {
+                    data.icon = this.sanitizer.bypassSecurityTrustUrl(url);
                 }).catch(() => {
                     // Error downloading. If we're online we'll set the online url.
                     if (this.appProvider.isOnline()) {
-                        data.icon = icon;
+                        data.icon = this.sanitizer.bypassSecurityTrustUrl(icon);
                     }
                 });
             }

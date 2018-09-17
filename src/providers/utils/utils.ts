@@ -59,6 +59,7 @@ export interface PromiseDefer {
 export class CoreUtilsProvider {
     protected logger;
     protected iabInstance: InAppBrowserObject;
+    protected uniqueIds: {[name: string]: number} = {};
 
     constructor(private iab: InAppBrowser, private appProvider: CoreAppProvider, private clipboard: Clipboard,
             private domUtils: CoreDomUtilsProvider, logger: CoreLoggerProvider, private translate: TranslateService,
@@ -572,6 +573,20 @@ export class CoreUtilsProvider {
     }
 
     /**
+     * Get a unique ID for a certain name.
+     *
+     * @param {string} name The name to get the ID for.
+     * @return {number} Unique ID.
+     */
+    getUniqueId(name: string): number {
+        if (!this.uniqueIds[name]) {
+            this.uniqueIds[name] = 0;
+        }
+
+        return ++this.uniqueIds[name];
+    }
+
+    /**
      * Given a list of files, check if there are repeated names.
      *
      * @param {any[]} files List of files.
@@ -853,7 +868,7 @@ export class CoreUtilsProvider {
         }
 
         // In the rest of platforms we need to open them in InAppBrowser.
-        window.open(url, '_blank');
+        this.openInApp(url);
 
         return Promise.resolve();
     }

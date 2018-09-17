@@ -1,5 +1,5 @@
 <ion-header>
-    <ion-navbar>
+    <ion-navbar core-back-button>
         <ion-title>{{ 'core.settings.spaceusage' | translate }}</ion-title>
     </ion-navbar>
 </ion-header>
@@ -19,10 +19,6 @@
         <ion-item-divider color="light">
             <p>{{ 'core.settings.total' | translate }}</p>
             <p item-end>{{ totalUsage | coreBytesToSize }}</p>
-        </ion-item-divider>
-        <ion-item-divider color="light">
-            <p>{{ 'core.settings.estimatedfreespace' | translate }}</p>
-            <p item-end>{{ freeSpace | coreBytesToSize }}</p>
         </ion-item-divider>
     </core-loading>
 </ion-content>

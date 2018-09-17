@@ -1,5 +1,5 @@
 <ion-header>
-    <ion-navbar>
+    <ion-navbar core-back-button>
         <ion-title>{{ 'core.login.newaccount' | translate }}</ion-title>
 
         <ion-buttons end>
@@ -68,7 +68,7 @@
             <ion-item text-wrap>
                 <ion-label stacked core-mark-required="true">{{ 'core.login.password' | translate }}</ion-label>
                 <core-show-password item-content [name]="'password'">
-                    <ion-input type="password" name="password" placeholder="{{ 'core.login.password' | translate }}" formControlName="password"></ion-input>
+                    <ion-input type="password" name="password" placeholder="{{ 'core.login.password' | translate }}" formControlName="password" [clearOnEdit]="false"></ion-input>
                 </core-show-password>
                 <p *ngIf="settings.passwordpolicy" item-content class="core-input-footnote">
                     {{settings.passwordpolicy}}
@@ -87,7 +87,7 @@
             </ion-item>
             <ion-item text-wrap>
                 <ion-label stacked core-mark-required="true">{{ 'core.user.emailagain' | translate }}</ion-label>
-                <ion-input type="email" name="email2" placeholder="{{ 'core.user.emailagain' | translate }}" formControlName="email2" autocapitalize="none" autocorrect="off" pattern="{{signupForm.controls.email.value}}"></ion-input>
+                <ion-input type="email" name="email2" placeholder="{{ 'core.user.emailagain' | translate }}" formControlName="email2" autocapitalize="none" autocorrect="off" [pattern]="escapeMail(signupForm.controls.email.value)"></ion-input>
                 <core-input-errors item-content [control]="signupForm.controls.email2" [errorMessages]="email2Errors"></core-input-errors>
             </ion-item>
             <ion-item *ngFor="let nameField of settings.namefields" text-wrap>

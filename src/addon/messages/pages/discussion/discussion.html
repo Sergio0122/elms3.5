@@ -1,5 +1,5 @@
 <ion-header>
-    <ion-navbar>
+    <ion-navbar core-back-button>
         <ion-title><core-format-text [text]="title"></core-format-text></ion-title>
         <ion-buttons end></ion-buttons>
     </ion-navbar>
@@ -12,7 +12,7 @@
         </a>
     </core-navbar-buttons>
 </ion-header>
-<ion-content>
+<ion-content class="has-footer">
     <core-loading [hideUntil]="loaded">
         <!-- Load previous messages. -->
         <ion-infinite-scroll [enabled]="canLoadMore" (ionInfinite)="loadPrevious($event)" position="top">
