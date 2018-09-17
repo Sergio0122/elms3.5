@@ -23,7 +23,7 @@
     <preference name="webviewbounce" value="false" />
     <preference name="AppendUserAgent" value="MoodleMobile" />
     <preference name="android-minSdkVersion" value="19" />
-    <preference name="android-targetSdkVersion" value="26" />
+    <preference name="android-targetSdkVersion" value="27" />
     <preference name="UIWebViewBounce" value="false" />
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackupWebStorage" value="none" />
@@ -40,6 +40,11 @@
     <feature name="StatusBar">
         <param name="ios-package" onload="true" value="CDVStatusBar" />
     </feature>
+        <gap:plugin name="cordova-android-support-gradle-release" spec="https://github.com/dpa99c/cordova-android-support-gradle-             release">
+
+        <variable name="ANDROID_SUPPORT_VERSION" value="27.+" />
+
+    </gap:plugin>
     <platform name="android">
         <splash qualifier="land-ldpi" src="resources/android/splash/drawable-land-ldpi-screen.png" />
         <splash qualifier="land-mdpi" src="resources/android/splash/drawable-land-mdpi-screen.png" />
