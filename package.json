@@ -1,10 +1,10 @@
 {
-  "name": "moodlemobile",
+  "name": "evotorlmsmobile",
   "version": "3.5.1",
-  "description": "The official app for Moodle.",
+  "description": "The official app for Evotor LMS.",
   "author": {
-    "name": "Moodle Pty Ltd.",
-    "email": "mobile@moodle.com"
+    "name": "Evotor LMS",
+    "email": "lms@evotor.ru"
   },
   "config": {
     "ionic_webpack": "./config/webpack.config.js",
@@ -118,7 +118,7 @@
   },
   "main": "desktop/electron.js",
   "build": {
-    "appId": "com.moodle.moodledesktop",
+    "appId": "com.evotor.moodledesktop",
     "productName": "Moodle Desktop",
     "files": [
       "desktop/electron.js",
